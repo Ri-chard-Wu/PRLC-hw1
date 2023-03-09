@@ -5,9 +5,11 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-
-#include <queue>
 #include <bitset>
+
+#include <list>
+#include <queue>
+#include <unordered_map>
 
 using namespace std;
 
@@ -227,12 +229,15 @@ class Map{
 
         }
 
+        bool is_done(State state){
+
+        }
 
         bool is_dead_state(State state){
 
         }
 
-        void get_available_actions(State state, Action* action){
+        void get_available_actions(State state, list<Action>* action_list){
 
         }
 
@@ -266,18 +271,53 @@ class Solver{
         map->print_map();
         map->print_map_state(); 
 
-        nextStates.push(map.get_state());
+        nextStateQueue.push(map.get_state());
     }
+
+    void exploreOneStep(){
+        State state = nextStateQueue.front();
+        nextStateQueue.pop();
+
+        vistedBoxPos[state.boxPos] = true;
+
+        list<Action> action_list;
+        get_available_actions(state, &action_list);
+
+        State nextState;
+        while(!action_list.empty()){
+            nextState = state;
+            map->act(&nextState, action_list.front());
+            
+            if(map->is_done(nextState)){
+                done = true;
+                break;
+            } 
+
+            if(!is_boxPos_visited(nextState.boxPos)){
+                nextStateQueue.push(nextState);
+            }
+        }
+    }
+
 
     void explore(){
-        State state = nextStates.front();
-        nextStates.pop();
-
-
+        done = false;
+        while (!done) {
+            exploreOneStep();
+        }
     }
 
+
+    bool is_boxPos_visited(bitset<8> boxPos){
+        return vistedBoxPos.find(boxPos) == vistedBoxPos.end();
+    }
+
+
     Map* map;
-    queue<State> nextStates;
+    bool done;
+    queue<State> nextStateQueue;
+    unordered_map<bitset<8>, bool> vistedBoxPos;
+
 
 };
 
