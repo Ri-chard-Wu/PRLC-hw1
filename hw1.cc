@@ -215,12 +215,15 @@ class Map{
 
         void _get_row_ends(){
 
-            rowEnds = new int[fileLineNum];
+            rowBegins = new int[fileLineNum];
+
 
             int offset = 0;
-            for (int i=0; i<fileLen; i++){
+            rowBegins[offset++] = 0;
+
+            for (int i=1; i<fileLen; i++){
                 if(map[i] == '\n'){
-                    rowEnds[offset++] = i;
+                    rowBegins[offset++] = i+1;
                 }                
             }  
 
@@ -235,69 +238,59 @@ class Map{
 
         }
 
-        bool is_done(State state){
+        // bool is_done(State state){
 
-        }
+        // }
 
-        bool is_dead_state(State state){
+        // bool is_dead_state(State state){
 
-        }
+        // }
 
-        void get_available_actions(State state, list<Action>* action_list){
-            queue<Pos> nextPosQueue;
-            unordered_map<Pos, bool> vistedPos;
+        // void get_available_actions(State state, list<Action>* action_list){
+        //     queue<Pos> nextPosQueue;
+        //     unordered_map<Pos, bool> vistedPos;
 
-            Pos curPos{.row{state.row}, .col{state.col}};
-            Pos nextPos;
-            nextPosQueue.push(curPos);
+        //     Pos curPos{.row{state.row}, .col{state.col}};
+        //     Pos nextPos;
+        //     nextPosQueue.push(curPos);
 
-            while(!nextPosQueue.empty()){
-                curPos = nextPosQueue.front();
-                nextPosQueue.pop();
-                
-                // nextPos = curPos;
-                // nextPos.row = curPos.row - 1;
-                // if(is_valid_pos(nextPos)) nextPosQueue.push(nextPos);
-    
-                // nextPos = curPos;
-                // nextPos.col = curPos.col + 1;
-                // if(is_valid_pos(nextPos)) nextPosQueue.push(nextPos);
+        //     while(!nextPosQueue.empty()){
+        //         curPos = nextPosQueue.front();
+        //         nextPosQueue.pop();
 
-                // nextPos = curPos;
-                // nextPos.row = curPos.row + 1;
-                // if(is_valid_pos(nextPos)) nextPosQueue.push(nextPos);
-    
-                // nextPos = curPos;
-                // nextPos.col = curPos.col - 1;
-                // if(is_valid_pos(nextPos)) nextPosQueue.push(nextPos);
+        //         if(check_move(curPos, up, &nextPos)) nextPosQueue.push(nextPos);
+        //         if(check_move(curPos, right, &nextPos)) nextPosQueue.push(nextPos);
+        //         if(check_move(curPos, left, &nextPos)) nextPosQueue.push(nextPos);
+        //         if(check_move(curPos, down, &nextPos)) nextPosQueue.push(nextPos);
+        //     }
 
-                if(check_move(curPos, up, &nextPos)) nextPosQueue.push(nextPos);
-                if(check_move(curPos, right, &nextPos)) nextPosQueue.push(nextPos);
-                if(check_move(curPos, left, &nextPos)) nextPosQueue.push(nextPos);
-                if(check_move(curPos, down, &nextPos)) nextPosQueue.push(nextPos);
-            }
-
-        }
+        // }
 
 
-        bool check_move(Pos curPos, Direction dir, Pos* nextPos,){
+        // bool check_move(Pos curPos, Direction dir, Pos* nextPos,){
 
-        }
+        //     if(dir == up){
+        //         if()
+        //     }
+        // }
 
 
-        void act(State* state, Action action){
+        // void act(State* state, Action action){
 
-        }
+        // }
 
-        State get_state(){
-            return state;
-        }
+        // State get_state(){
+        //     return state;
+        // }
 
-        
+        // char get_map_object(Pos pos){
+        //     return map[rowBegins[pos.row] + pos.col];
+        // }
 
 
         char *map;
         int *rowEnds;
+        int *rowBegins;
 
         State state;        
    
@@ -315,46 +308,46 @@ class Solver{
         map->print_map();
         map->print_map_state(); 
 
-        nextStateQueue.push(map.get_state());
+        // nextStateQueue.push(map.get_state());
     }
 
-    void exploreOneStep(){
-        State state = nextStateQueue.front();
-        nextStateQueue.pop();
+    // void exploreOneStep(){
+    //     State state = nextStateQueue.front();
+    //     nextStateQueue.pop();
 
-        vistedBoxPos[state.boxPos] = true;
+    //     vistedBoxPos[state.boxPos] = true;
 
-        list<Action> action_list;
-        get_available_actions(state, &action_list);
+    //     list<Action> action_list;
+    //     get_available_actions(state, &action_list);
 
-        State nextState;
-        while(!action_list.empty()){
-            nextState = state;
-            map->act(&nextState, action_list.front());
+    //     State nextState;
+    //     while(!action_list.empty()){
+    //         nextState = state;
+    //         map->act(&nextState, action_list.front());
             
-            if(map->is_done(nextState)){
-                done = true;
-                break;
-            } 
+    //         if(map->is_done(nextState)){
+    //             done = true;
+    //             break;
+    //         } 
 
-            if(!is_boxPos_visited(nextState.boxPos)){
-                nextStateQueue.push(nextState);
-            }
-        }
-    }
-
-
-    void explore(){
-        done = false;
-        while (!done) {
-            exploreOneStep();
-        }
-    }
+    //         if(!is_boxPos_visited(nextState.boxPos)){
+    //             nextStateQueue.push(nextState);
+    //         }
+    //     }
+    // }
 
 
-    bool is_boxPos_visited(bitset<8> boxPos){
-        return vistedBoxPos.find(boxPos) == vistedBoxPos.end();
-    }
+    // void explore(){
+    //     done = false;
+    //     while (!done) {
+    //         exploreOneStep();
+    //     }
+    // }
+
+
+    // bool is_boxPos_visited(bitset<8> boxPos){
+    //     return vistedBoxPos.find(boxPos) == vistedBoxPos.end();
+    // }
 
 
     Map* map;
