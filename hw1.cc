@@ -6,9 +6,29 @@
 #include <fstream>
 #include <string>
 
+#include <queue>
 #include <bitset>
 
 using namespace std;
+
+
+
+struct State{
+    bitset<64> boxPos;
+    char row, col;
+};
+
+enum Direction{
+    up,
+    right,
+    left,
+    down
+};
+
+struct Action{
+    char row, col;
+    Direction dir;
+};
 
 
 class Map{
@@ -153,7 +173,6 @@ class Map{
                 exit(-1);
             }
 
-
             state.boxPos = 0b0;
             int offset = 0;
             int row = 0, col = 0;
@@ -167,7 +186,6 @@ class Map{
                     continue;
                 }
                 col++;
-
 
                 if(ch != '#'){
                     if(ch == ' ' || ch == '.'){
@@ -187,8 +205,6 @@ class Map{
             fclose(ptr);
         }
 
-
-
         void _get_row_ends(){
 
             rowEnds = new int[fileLineNum];
@@ -199,10 +215,6 @@ class Map{
                     rowEnds[offset++] = i;
                 }                
             }  
-
-            // for (int i=0; i<fileLineNum; i++){
-            //     fprintf(stderr, "rowEnds[i]: %d \n", rowEnds[i]);               
-            // }  
 
         }
 
@@ -216,27 +228,58 @@ class Map{
         }
 
 
-        struct State{
-            bitset<64> boxPos;
-            char row, col;
-        };
+        bool is_dead_state(State state){
+
+        }
+
+        void get_available_actions(State state, Action* action){
+
+        }
+
+        void act(State* state, Action action){
+
+        }
+
+        State get_state(){
+            return state;
+        }
+
+
 
 
         char *map;
         int *rowEnds;
 
-        // int stateSize;
-        State state;
-        
+        State state;        
    
         int fileLen;
         int fileLineNum;
         int spaceNum;
-        
 };
 
 
+class Solver{
+    public:
 
+    Solver(char* filename){
+        map = new Map(filename);
+        map->print_map();
+        map->print_map_state(); 
+
+        nextStates.push(map.get_state());
+    }
+
+    void explore(){
+        State state = nextStates.front();
+        nextStates.pop();
+
+
+    }
+
+    Map* map;
+    queue<State> nextStates;
+
+};
 
 
 
@@ -245,10 +288,8 @@ class Map{
 int main(int argc, char** argv) {
     
     fprintf(stderr, "argv[1]: %s\n", argv[1]);
-    
-    Map map(argv[1]);
-    map.print_map();
-    map.print_map_state();
+
+    Solver solver(argv[1]);
 
     return 0;
 }
