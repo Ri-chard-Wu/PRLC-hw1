@@ -20,6 +20,10 @@ struct State{
     char row, col;
 };
 
+struct Pos{
+    char row, col;
+};
+
 enum Direction{
     up,
     right,
@@ -68,8 +72,7 @@ class Map{
                 }
                 else{
 
-                    col++;
-
+                
                     if(ch == ' '){
                         if(state.boxPos[offset++] == 1){
                             ch = 'x';
@@ -86,6 +89,8 @@ class Map{
                             ch = 'O';
                         }                    
                     }
+
+                    col++;
                 
                 }
 
@@ -187,8 +192,7 @@ class Map{
                     row++; col = 0;
                     continue;
                 }
-                col++;
-
+                
                 if(ch != '#'){
                     if(ch == ' ' || ch == '.'){
                         state.boxPos.reset(size_t(offset++));
@@ -202,6 +206,8 @@ class Map{
                         state.col = col;
                     }                    
                 }
+
+                col++;
             }      
 
             fclose(ptr);
@@ -238,8 +244,46 @@ class Map{
         }
 
         void get_available_actions(State state, list<Action>* action_list){
+            queue<Pos> nextPosQueue;
+            unordered_map<Pos, bool> vistedPos;
+
+            Pos curPos{.row{state.row}, .col{state.col}};
+            Pos nextPos;
+            nextPosQueue.push(curPos);
+
+            while(!nextPosQueue.empty()){
+                curPos = nextPosQueue.front();
+                nextPosQueue.pop();
+                
+                // nextPos = curPos;
+                // nextPos.row = curPos.row - 1;
+                // if(is_valid_pos(nextPos)) nextPosQueue.push(nextPos);
+    
+                // nextPos = curPos;
+                // nextPos.col = curPos.col + 1;
+                // if(is_valid_pos(nextPos)) nextPosQueue.push(nextPos);
+
+                // nextPos = curPos;
+                // nextPos.row = curPos.row + 1;
+                // if(is_valid_pos(nextPos)) nextPosQueue.push(nextPos);
+    
+                // nextPos = curPos;
+                // nextPos.col = curPos.col - 1;
+                // if(is_valid_pos(nextPos)) nextPosQueue.push(nextPos);
+
+                if(check_move(curPos, up, &nextPos)) nextPosQueue.push(nextPos);
+                if(check_move(curPos, right, &nextPos)) nextPosQueue.push(nextPos);
+                if(check_move(curPos, left, &nextPos)) nextPosQueue.push(nextPos);
+                if(check_move(curPos, down, &nextPos)) nextPosQueue.push(nextPos);
+            }
 
         }
+
+
+        bool check_move(Pos curPos, Direction dir, Pos* nextPos,){
+
+        }
+
 
         void act(State* state, Action action){
 
@@ -249,7 +293,7 @@ class Map{
             return state;
         }
 
-
+        
 
 
         char *map;
