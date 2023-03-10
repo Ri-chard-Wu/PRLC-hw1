@@ -1,266 +1,413 @@
+hw1.cc:19:5: error: ‘bitset’ does not name a type
+   19 |     bitset<64> boxPos;
+      |     ^~~~~~
+hw1.cc:265:49: error: ‘list’ has not been declared
+  265 |         void get_available_actions(State state, list<Action>* action_list){
+      |                                                 ^~~~
+hw1.cc:265:53: error: expected ‘,’ or ‘...’ before ‘<’ token
+  265 |         void get_available_actions(State state, list<Action>* action_list){
+      |                                                     ^
+hw1.cc:292:62: error: ‘list’ has not been declared
+  292 |         void add_local_action(char* renderedMap, Pos curPos, list<Action>* action_list){
+      |                                                              ^~~~
+hw1.cc:292:66: error: expected ‘,’ or ‘...’ before ‘<’ token
+  292 |         void add_local_action(char* renderedMap, Pos curPos, list<Action>* action_list){
+      |                                                                  ^
+hw1.cc:472:29: error: ‘unordered_map’ has not been declared
+  472 |         bool is_pos_visited(unordered_map<Pos, bool> *vistedPos, Pos pos){
+      |                             ^~~~~~~~~~~~~
+hw1.cc:472:42: error: expected ‘,’ or ‘...’ before ‘<’ token
+  472 |         bool is_pos_visited(unordered_map<Pos, bool> *vistedPos, Pos pos){
+      |                                          ^
+hw1.cc:478:21: error: ‘unordered_map’ has not been declared
+  478 |                     unordered_map<Pos, bool> *vistedPos, queue<Pos> *nextPosQueue){
+      |                     ^~~~~~~~~~~~~
+hw1.cc:478:34: error: expected ‘,’ or ‘...’ before ‘<’ token
+  478 |                     unordered_map<Pos, bool> *vistedPos, queue<Pos> *nextPosQueue){
+      |                                  ^
+hw1.cc:518:47: error: ‘bitset’ has not been declared
+  518 |         void render_boxPos(char *renderedMap, bitset<64> boxPos){
+      |                                               ^~~~~~
+hw1.cc:518:53: error: expected ‘,’ or ‘...’ before ‘<’ token
+  518 |         void render_boxPos(char *renderedMap, bitset<64> boxPos){
+      |                                                     ^
 hw1.cc: In member function ‘void Map::print_map_state()’:
-hw1.cc:112:43: error: ‘get_map_object’ was not declared in this scope
-  112 |                     fprintf(stderr, "%c", get_map_object(pos));
-      |                                           ^~~~~~~~~~~~~~
+hw1.cc:79:34: error: ‘struct State’ has no member named ‘boxPos’
+   79 |                         if(state.boxPos[offset++] == 1){
+      |                                  ^~~~~~
+hw1.cc:87:34: error: ‘struct State’ has no member named ‘boxPos’
+   87 |                         if(state.boxPos[offset++] == 1){
+      |                                  ^~~~~~
+hw1.cc: In member function ‘void Map::_read_state(char*)’:
+hw1.cc:201:19: error: ‘struct State’ has no member named ‘boxPos’
+  201 |             state.boxPos = 0b0;
+      |                   ^~~~~~
+hw1.cc:216:31: error: ‘struct State’ has no member named ‘boxPos’
+  216 |                         state.boxPos.reset(size_t(offset++));
+      |                               ^~~~~~
+hw1.cc:219:31: error: ‘struct State’ has no member named ‘boxPos’
+  219 |                         state.boxPos.set(size_t(offset++), true);
+      |                               ^~~~~~
+hw1.cc:222:31: error: ‘struct State’ has no member named ‘boxPos’
+  222 |                         state.boxPos.reset(size_t(offset++));
+      |                               ^~~~~~
 hw1.cc: In member function ‘bool Map::is_done(State)’:
-hw1.cc:259:9: warning: no return statement in function returning non-void [-Wreturn-type]
-  259 |         }
+hw1.cc:261:9: warning: no return statement in function returning non-void [-Wreturn-type]
+  261 |         }
       |         ^
-hw1.cc: In member function ‘bool Map::is_dead_state(State)’:
-hw1.cc:263:9: warning: no return statement in function returning non-void [-Wreturn-type]
-  263 |         }
-      |         ^
-hw1.cc: In member function ‘void Map::get_available_actions(State, std::__cxx11::list<Action>*)’:
-hw1.cc:270:38: error: use of deleted function ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::unordered_map() [with _Key = Pos; _Tp = bool; _Hash = std::hash<Pos>; _Pred = std::equal_to<Pos>; _Alloc = std::allocator<std::pair<const Pos, bool> >]’
-  270 |             unordered_map<Pos, bool> vistedPos;
-      |                                      ^~~~~~~~~
+hw1.cc: In member function ‘void Map::get_available_actions(State, int)’:
+hw1.cc:269:46: error: ‘struct State’ has no member named ‘boxPos’
+  269 |             render_boxPos(renderedMap, state.boxPos);
+      |                                              ^~~~~~
+hw1.cc:271:13: error: ‘queue’ was not declared in this scope; did you mean ‘std::queue’?
+  271 |             queue<Pos> nextPosQueue;
+      |             ^~~~~
+      |             std::queue
+In file included from /usr/include/c++/12.2.1/queue:64,
+                 from hw1.cc:11:
+/usr/include/c++/12.2.1/bits/stl_queue.h:96:11: note: ‘std::queue’ declared here
+   96 |     class queue
+      |           ^~~~~
+hw1.cc:271:22: error: expected primary-expression before ‘>’ token
+  271 |             queue<Pos> nextPosQueue;
+      |                      ^
+hw1.cc:271:24: error: ‘nextPosQueue’ was not declared in this scope
+  271 |             queue<Pos> nextPosQueue;
+      |                        ^~~~~~~~~~~~
+hw1.cc:272:13: error: ‘unordered_map’ was not declared in this scope
+  272 |             unordered_map<Pos, bool> vistedPos;
+      |             ^~~~~~~~~~~~~
+hw1.cc:272:13: note: suggested alternatives:
 In file included from /usr/include/c++/12.2.1/unordered_map:47,
                  from hw1.cc:12:
-/usr/include/c++/12.2.1/bits/unordered_map.h:141:7: note: ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::unordered_map() [with _Key = Pos; _Tp = bool; _Hash = std::hash<Pos>; _Pred = std::equal_to<Pos>; _Alloc = std::allocator<std::pair<const Pos, bool> >]’ is implicitly deleted because the default definition would be ill-formed:
-  141 |       unordered_map() = default;
-      |       ^~~~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/unordered_map.h:141:7: error: use of deleted function ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::_Hashtable() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’
-In file included from /usr/include/c++/12.2.1/unordered_map:46:
-/usr/include/c++/12.2.1/bits/hashtable.h:531:7: note: ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::_Hashtable() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’ is implicitly deleted because the default definition would be ill-formed:
-  531 |       _Hashtable() = default;
-      |       ^~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable.h:531:7: error: use of deleted function ‘std::__detail::_Hashtable_base<_Key, _Value, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _Traits>::_Hashtable_base() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’
-In file included from /usr/include/c++/12.2.1/bits/hashtable.h:35:
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1674:7: note: ‘std::__detail::_Hashtable_base<_Key, _Value, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _Traits>::_Hashtable_base() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’ is implicitly deleted because the default definition would be ill-formed:
- 1674 |       _Hashtable_base() = default;
-      |       ^~~~~~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1674:7: error: use of deleted function ‘std::__detail::_Hash_code_base<_Key, _Value, _ExtractKey, _Hash, _RangeHash, _Unused, __cache_hash_code>::_Hash_code_base() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; bool __cache_hash_code = true]’
-/usr/include/c++/12.2.1/bits/hashtable_policy.h: In instantiation of ‘std::__detail::_Hashtable_ebo_helper<_Nm, _Tp, true>::_Hashtable_ebo_helper() [with int _Nm = 1; _Tp = std::hash<Pos>]’:
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1261:7:   required from here
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1178:49: error: use of deleted function ‘std::hash<Pos>::hash()’
- 1178 |       _Hashtable_ebo_helper() noexcept(noexcept(_Tp())) : _Tp() { }
-      |                                                 ^~~~~
-In file included from /usr/include/c++/12.2.1/string_view:43,
-                 from /usr/include/c++/12.2.1/bits/basic_string.h:47,
-                 from /usr/include/c++/12.2.1/string:53,
+/usr/include/c++/12.2.1/bits/unordered_map.h:102:11: note:   ‘std::unordered_map’
+  102 |     class unordered_map
+      |           ^~~~~~~~~~~~~
+/usr/include/c++/12.2.1/unordered_map:64:13: note:   ‘std::pmr::unordered_map’
+   64 |       using unordered_map
+      |             ^~~~~~~~~~~~~
+hw1.cc:272:30: error: expected primary-expression before ‘,’ token
+  272 |             unordered_map<Pos, bool> vistedPos;
+      |                              ^
+hw1.cc:272:32: error: expected primary-expression before ‘bool’
+  272 |             unordered_map<Pos, bool> vistedPos;
+      |                                ^~~~
+hw1.cc:282:17: error: ‘vistedPos’ was not declared in this scope
+  282 |                 vistedPos[curPos] = true;
+      |                 ^~~~~~~~~
+hw1.cc:284:56: error: ‘action_list’ was not declared in this scope
+  284 |                 add_local_action(renderedMap, curPos, &action_list);
+      |                                                        ^~~~~~~~~~~
+hw1.cc: In member function ‘void Map::add_local_action(char*, Pos, int)’:
+hw1.cc:314:69: error: ‘action_list’ was not declared in this scope
+  314 |                         if(!willbe_dead_state(renderedMap, action)) action_list->push_back(action);
+      |                                                                     ^~~~~~~~~~~
+hw1.cc: In member function ‘bool Map::willbe_dead_state(char*, Action)’:
+hw1.cc:329:44: error: cannot convert ‘char*’ to ‘Pos’
+  329 |             else if(is_pushPos_unreachable(renderedMap, x_pos)){return true;}
+      |                                            ^~~~~~~~~~~
+      |                                            |
+      |                                            char*
+hw1.cc:421:41: note:   initializing argument 1 of ‘void Map::is_pushPos_unreachable(Pos, Pos)’
+  421 |         void is_pushPos_unreachable(Pos o_pos, Pos x_pos){
+      |                                     ~~~~^~~~~
+hw1.cc: In member function ‘bool Map::is_dead_corner(char*, Pos)’:
+hw1.cc:349:29: error: invalid conversion from ‘int’ to ‘Dir’ [-fpermissive]
+  349 |                 move(x_pos, dir1, &probe_pos1);
+      |                             ^~~~
+      |                             |
+      |                             int
+hw1.cc:495:35: note:   initializing argument 2 of ‘void Map::move(Pos, Dir, Pos*)’
+  495 |         void move(Pos curPos, Dir dir, Pos *nextPos){
+      |                               ~~~~^~~
+hw1.cc:352:29: error: invalid conversion from ‘int’ to ‘Dir’ [-fpermissive]
+  352 |                 move(x_pos, dir2, &probe_pos2);
+      |                             ^~~~
+      |                             |
+      |                             int
+hw1.cc:495:35: note:   initializing argument 2 of ‘void Map::move(Pos, Dir, Pos*)’
+  495 |         void move(Pos curPos, Dir dir, Pos *nextPos){
+      |                               ~~~~^~~
+hw1.cc:356:64: error: ‘mapObj_adj’ was not declared in this scope; did you mean ‘mapObj_adj2’?
+  356 |                 if(mapObj_adj1 == '#' && mapObj_adj2 == '#' && mapObj_adj != '.'){
+      |                                                                ^~~~~~~~~~
+      |                                                                mapObj_adj2
+hw1.cc: In member function ‘void Map::is_pushPos_unreachable(Pos, Pos)’:
+hw1.cc:432:13: error: ‘queue’ was not declared in this scope; did you mean ‘std::queue’?
+  432 |             queue<Pos> nextPosQueue;
+      |             ^~~~~
+      |             std::queue
+/usr/include/c++/12.2.1/bits/stl_queue.h:96:11: note: ‘std::queue’ declared here
+   96 |     class queue
+      |           ^~~~~
+hw1.cc:432:22: error: expected primary-expression before ‘>’ token
+  432 |             queue<Pos> nextPosQueue;
+      |                      ^
+hw1.cc:432:24: error: ‘nextPosQueue’ was not declared in this scope
+  432 |             queue<Pos> nextPosQueue;
+      |                        ^~~~~~~~~~~~
+hw1.cc:433:22: error: expected primary-expression before ‘>’ token
+  433 |             queue<Pos> pushPosQueue;
+      |                      ^
+hw1.cc:433:24: error: ‘pushPosQueue’ was not declared in this scope
+  433 |             queue<Pos> pushPosQueue;
+      |                        ^~~~~~~~~~~~
+hw1.cc:434:13: error: ‘unordered_map’ was not declared in this scope
+  434 |             unordered_map<Pos, bool> vistedPos;
+      |             ^~~~~~~~~~~~~
+hw1.cc:434:13: note: suggested alternatives:
+/usr/include/c++/12.2.1/bits/unordered_map.h:102:11: note:   ‘std::unordered_map’
+  102 |     class unordered_map
+      |           ^~~~~~~~~~~~~
+/usr/include/c++/12.2.1/unordered_map:64:13: note:   ‘std::pmr::unordered_map’
+   64 |       using unordered_map
+      |             ^~~~~~~~~~~~~
+hw1.cc:434:30: error: expected primary-expression before ‘,’ token
+  434 |             unordered_map<Pos, bool> vistedPos;
+      |                              ^
+hw1.cc:434:32: error: expected primary-expression before ‘bool’
+  434 |             unordered_map<Pos, bool> vistedPos;
+      |                                ^~~~
+hw1.cc:449:17: error: ‘vistedPos’ was not declared in this scope
+  449 |                 vistedPos[curPos] = true;
+      |                 ^~~~~~~~~
+hw1.cc:458:17: error: ‘pushPos’ was not declared in this scope
+  458 |                 pushPos = pushPosQueue.front();
+      |                 ^~~~~~~
+hw1.cc:461:77: error: ‘vistedPos’ was not declared in this scope
+  461 |                 is_all_unreachable = is_all_unreachable && !is_pos_visited(&vistedPos, pushPos);
+      |                                                                             ^~~~~~~~~
+hw1.cc:465:20: error: return-statement with a value, in function returning ‘void’ [-fpermissive]
+  465 |             return is_all_unreachable;
+      |                    ^~~~~~~~~~~~~~~~~~
+hw1.cc: In member function ‘bool Map::is_pos_visited(int)’:
+hw1.cc:473:20: error: ‘vistedPos’ was not declared in this scope
+  473 |             return vistedPos.find(pos) == vistedPos.end();
+      |                    ^~~~~~~~~
+hw1.cc:473:35: error: ‘pos’ was not declared in this scope; did you mean ‘Pos’?
+  473 |             return vistedPos.find(pos) == vistedPos.end();
+      |                                   ^~~
+      |                                   Pos
+hw1.cc: In member function ‘bool Map::add_unvisited_nextPos(char*, Pos, Dir, int)’:
+hw1.cc:489:36: error: ‘vistedPos’ was not declared in this scope
+  489 |                 if(!is_pos_visited(vistedPos, nextPos)){
+      |                                    ^~~~~~~~~
+hw1.cc:490:21: error: ‘nextPosQueue’ was not declared in this scope
+  490 |                     nextPosQueue->push(nextPos);
+      |                     ^~~~~~~~~~~~
+hw1.cc:493:9: warning: no return statement in function returning non-void [-Wreturn-type]
+  493 |         }
+      |         ^
+hw1.cc: In member function ‘void Map::render_boxPos(char*, int)’:
+hw1.cc:528:24: error: ‘boxPos’ was not declared in this scope
+  528 |                     if(boxPos[offset++] == 1) ch = 'x';
+      |                        ^~~~~~
+hw1.cc:531:24: error: ‘boxPos’ was not declared in this scope
+  531 |                     if(boxPos[offset++] == 1) ch = 'X';
+      |                        ^~~~~~
+hw1.cc: At global scope:
+hw1.cc:609:28: error: ‘unordered_map’ has not been declared
+  609 |     void add_visited_state(unordered_map<bitset<64>, Pos> *vistedState,
+      |                            ^~~~~~~~~~~~~
+hw1.cc:609:41: error: expected ‘,’ or ‘...’ before ‘<’ token
+  609 |     void add_visited_state(unordered_map<bitset<64>, Pos> *vistedState,
+      |                                         ^
+hw1.cc:623:25: error: ‘unordered_map’ has not been declared
+  623 |     void insert_PosNode(unordered_map<bitset<64>, PosNode> *vistedCollidedState, State state){
+      |                         ^~~~~~~~~~~~~
+hw1.cc:623:38: error: expected ‘,’ or ‘...’ before ‘<’ token
+  623 |     void insert_PosNode(unordered_map<bitset<64>, PosNode> *vistedCollidedState, State state){
+      |                                      ^
+hw1.cc:628:27: error: ‘unordered_map’ has not been declared
+  628 |     bool is_state_visited(unordered_map<bitset<64>, Pos> *vistedState,
+      |                           ^~~~~~~~~~~~~
+hw1.cc:628:40: error: expected ‘,’ or ‘...’ before ‘<’ token
+  628 |     bool is_state_visited(unordered_map<bitset<64>, Pos> *vistedState,
+      |                                        ^
+hw1.cc:660:36: error: ‘unordered_map’ has not been declared
+  660 |     bool is_in_vistedCollidedState(unordered_map<bitset<64>, PosNode*> *vistedCollidedState,
+      |                                    ^~~~~~~~~~~~~
+hw1.cc:660:49: error: expected ‘,’ or ‘...’ before ‘<’ token
+  660 |     bool is_in_vistedCollidedState(unordered_map<bitset<64>, PosNode*> *vistedCollidedState,
+      |                                                 ^
+hw1.cc:665:28: error: ‘unordered_map’ has not been declared
+  665 |     bool is_in_vistedState(unordered_map<bitset<64>, Pos> *vistedState, bitset<64> boxPos){
+      |                            ^~~~~~~~~~~~~
+hw1.cc:665:41: error: expected ‘,’ or ‘...’ before ‘<’ token
+  665 |     bool is_in_vistedState(unordered_map<bitset<64>, Pos> *vistedState, bitset<64> boxPos){
+      |                                         ^
+hw1.cc:680:5: error: expected ‘;’ at end of member declaration
+  680 |     Map* map;
+      |     ^~~
+      |        ;
+hw1.cc:680:10: error: ISO C++ forbids declaration of ‘map’ with no type [-fpermissive]
+  680 |     Map* map;
+      |          ^~~
+hw1.cc: In constructor ‘Solver::Solver(char*)’:
+hw1.cc:562:19: error: expected type-specifier before ‘Map’
+  562 |         map = new Map(filename);
+      |                   ^~~
+hw1.cc:563:14: error: request for member ‘print_map’ in ‘*((Solver*)this)->Solver::map’, which is of non-class type ‘int’
+  563 |         map->print_map();
+      |              ^~~~~~~~~
+hw1.cc:564:14: error: request for member ‘print_map_state’ in ‘*((Solver*)this)->Solver::map’, which is of non-class type ‘int’
+  564 |         map->print_map_state();
+      |              ^~~~~~~~~~~~~~~
+hw1.cc:566:9: error: ‘nextStateQueue’ was not declared in this scope
+  566 |         nextStateQueue.push(map.get_state());
+      |         ^~~~~~~~~~~~~~
+hw1.cc:566:33: error: request for member ‘get_state’ in ‘((Solver*)this)->Solver::map’, which is of non-class type ‘int*’
+  566 |         nextStateQueue.push(map.get_state());
+      |                                 ^~~~~~~~~
+hw1.cc: In member function ‘void Solver::explore()’:
+hw1.cc:572:9: error: ‘queue’ was not declared in this scope; did you mean ‘std::queue’?
+  572 |         queue<State> nextStateQueue;
+      |         ^~~~~
+      |         std::queue
+/usr/include/c++/12.2.1/bits/stl_queue.h:96:11: note: ‘std::queue’ declared here
+   96 |     class queue
+      |           ^~~~~
+hw1.cc:572:20: error: expected primary-expression before ‘>’ token
+  572 |         queue<State> nextStateQueue;
+      |                    ^
+hw1.cc:572:22: error: ‘nextStateQueue’ was not declared in this scope
+  572 |         queue<State> nextStateQueue;
+      |                      ^~~~~~~~~~~~~~
+hw1.cc:574:9: error: ‘unordered_map’ was not declared in this scope
+  574 |         unordered_map<bitset<64>, Pos> vistedState;
+      |         ^~~~~~~~~~~~~
+hw1.cc:574:9: note: suggested alternatives:
+/usr/include/c++/12.2.1/bits/unordered_map.h:102:11: note:   ‘std::unordered_map’
+  102 |     class unordered_map
+      |           ^~~~~~~~~~~~~
+/usr/include/c++/12.2.1/unordered_map:64:13: note:   ‘std::pmr::unordered_map’
+   64 |       using unordered_map
+      |             ^~~~~~~~~~~~~
+hw1.cc:574:23: error: ‘bitset’ was not declared in this scope; did you mean ‘std::bitset’?
+  574 |         unordered_map<bitset<64>, Pos> vistedState;
+      |                       ^~~~~~
+      |                       std::bitset
+In file included from hw1.cc:8:
+/usr/include/c++/12.2.1/bitset:751:11: note: ‘std::bitset’ declared here
+  751 |     class bitset
+      |           ^~~~~~
+hw1.cc:574:33: error: expected primary-expression before ‘,’ token
+  574 |         unordered_map<bitset<64>, Pos> vistedState;
+      |                                 ^
+hw1.cc:574:38: error: expected primary-expression before ‘>’ token
+  574 |         unordered_map<bitset<64>, Pos> vistedState;
+      |                                      ^
+hw1.cc:574:40: error: ‘vistedState’ was not declared in this scope
+  574 |         unordered_map<bitset<64>, Pos> vistedState;
+      |                                        ^~~~~~~~~~~
+hw1.cc:575:33: error: expected primary-expression before ‘,’ token
+  575 |         unordered_map<bitset<64>, PosNode*> vistedCollidedState;
+      |                                 ^
+hw1.cc:575:42: error: expected primary-expression before ‘*’ token
+  575 |         unordered_map<bitset<64>, PosNode*> vistedCollidedState;
+      |                                          ^
+hw1.cc:575:43: error: expected primary-expression before ‘>’ token
+  575 |         unordered_map<bitset<64>, PosNode*> vistedCollidedState;
+      |                                           ^
+hw1.cc:575:45: error: ‘vistedCollidedState’ was not declared in this scope; did you mean ‘is_in_vistedCollidedState’?
+  575 |         unordered_map<bitset<64>, PosNode*> vistedCollidedState;
+      |                                             ^~~~~~~~~~~~~~~~~~~
+      |                                             is_in_vistedCollidedState
+hw1.cc:578:9: error: ‘list’ was not declared in this scope
+  578 |         list<Action> action_list;
+      |         ^~~~
+hw1.cc:578:9: note: suggested alternatives:
+In file included from /usr/include/c++/12.2.1/list:63,
+                 from hw1.cc:10:
+/usr/include/c++/12.2.1/bits/stl_list.h:632:11: note:   ‘std::__cxx11::list’
+  632 |     class list : protected _List_base<_Tp, _Alloc>
+      |           ^~~~
+/usr/include/c++/12.2.1/list:78:13: note:   ‘std::pmr::list’
+   78 |       using list = std::list<_Tp, polymorphic_allocator<_Tp>>;
+      |             ^~~~
+hw1.cc:578:20: error: expected primary-expression before ‘>’ token
+  578 |         list<Action> action_list;
+      |                    ^
+hw1.cc:578:22: error: ‘action_list’ was not declared in this scope
+  578 |         list<Action> action_list;
+      |                      ^~~~~~~~~~~
+hw1.cc:589:13: error: ‘get_available_actions’ was not declared in this scope
+  589 |             get_available_actions(state, &action_list);
+      |             ^~~~~~~~~~~~~~~~~~~~~
+hw1.cc:593:22: error: request for member ‘act’ in ‘*((Solver*)this)->Solver::map’, which is of non-class type ‘int’
+  593 |                 map->act(&nextState, action_list.front());
+      |                      ^~~
+hw1.cc: In member function ‘void Solver::add_visited_state(int)’:
+hw1.cc:613:19: error: ‘state’ was not declared in this scope; did you mean ‘State’?
+  613 |         pos.row = state.row;
+      |                   ^~~~~
+      |                   State
+hw1.cc:616:12: error: ‘vistedState’ was not declared in this scope
+  616 |         if(vistedState->find(state.boxPos) == vistedState->end()){ // not inside.
+      |            ^~~~~~~~~~~
+hw1.cc:619:29: error: ‘vistedCollidedState’ was not declared in this scope; did you mean ‘is_in_vistedCollidedState’?
+  619 |             insert_PosNode(&vistedCollidedState, state);
+      |                             ^~~~~~~~~~~~~~~~~~~
+      |                             is_in_vistedCollidedState
+hw1.cc: In member function ‘bool Solver::is_state_visited(int)’:
+hw1.cc:632:32: error: ‘vistedState’ was not declared in this scope
+  632 |         if(!is_in_vistedState(&vistedState, state.boxPos)){return false;}
+      |                                ^~~~~~~~~~~
+hw1.cc:632:45: error: ‘state’ was not declared in this scope; did you mean ‘State’?
+  632 |         if(!is_in_vistedState(&vistedState, state.boxPos)){return false;}
+      |                                             ^~~~~
+      |                                             State
+hw1.cc:635:28: error: ‘vistedState’ was not declared in this scope
+  635 |         Pos visitedPos = (*vistedState)[state.boxPos];
+      |                            ^~~~~~~~~~~
+hw1.cc:635:41: error: ‘state’ was not declared in this scope; did you mean ‘State’?
+  635 |         Pos visitedPos = (*vistedState)[state.boxPos];
+      |                                         ^~~~~
+      |                                         State
+hw1.cc:636:52: error: cannot convert ‘<brace-enclosed initializer list>’ to ‘unsigned char’ in initialization
+  636 |         Pos curPos{.row{state.row}, .col{state.col}};
+      |                                                    ^
+hw1.cc:641:17: error: request for member ‘is_reachable’ in ‘*((Solver*)this)->Solver::map’, which is of non-class type ‘int’
+  641 |         if(map->is_reachable(state, curPos, visitedPos)){return true;}
+      |                 ^~~~~~~~~~~~
+hw1.cc:645:40: error: ‘vistedCollidedState’ was not declared in this scope; did you mean ‘is_in_vistedCollidedState’?
+  645 |         if(!is_in_vistedCollidedState(&vistedCollidedState, state.boxPos)){return false;}
+      |                                        ^~~~~~~~~~~~~~~~~~~
+      |                                        is_in_vistedCollidedState
+hw1.cc:650:26: error: ‘vistedCollidedState’ was not declared in this scope; did you mean ‘is_in_vistedCollidedState’?
+  650 |         PosNode *cur = (*vistedCollidedState)[state.boxPos];
+      |                          ^~~~~~~~~~~~~~~~~~~
+      |                          is_in_vistedCollidedState
+hw1.cc:651:25: error: ‘prev’ was not declared in this scope; did you mean ‘std::prev’?
+  651 |         PosNode *next = prev->next;
+      |                         ^~~~
+      |                         std::prev
+In file included from /usr/include/c++/12.2.1/string:46,
                  from /usr/include/c++/12.2.1/bits/locale_classes.h:40,
                  from /usr/include/c++/12.2.1/bits/ios_base.h:41,
                  from /usr/include/c++/12.2.1/ios:42,
                  from /usr/include/c++/12.2.1/ostream:38,
                  from /usr/include/c++/12.2.1/iostream:39,
                  from hw1.cc:5:
-/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: note: ‘std::hash<Pos>::hash()’ is implicitly deleted because the default definition would be ill-formed:
-  102 |     struct hash : __hash_enum<_Tp>
-      |            ^~~~
-/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: error: no matching function for call to ‘std::__hash_enum<Pos, false>::__hash_enum()’
-/usr/include/c++/12.2.1/bits/functional_hash.h:83:7: note: candidate: ‘std::__hash_enum<_Tp, <anonymous> >::__hash_enum(std::__hash_enum<_Tp, <anonymous> >&&) [with _Tp = Pos; bool <anonymous> = false]’
-   83 |       __hash_enum(__hash_enum&&);
-      |       ^~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/functional_hash.h:83:7: note:   candidate expects 1 argument, 0 provided
-/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: error: ‘std::__hash_enum<_Tp, <anonymous> >::~__hash_enum() [with _Tp = Pos; bool <anonymous> = false]’ is private within this context
-  102 |     struct hash : __hash_enum<_Tp>
-      |            ^~~~
-/usr/include/c++/12.2.1/bits/functional_hash.h:84:7: note: declared private here
-   84 |       ~__hash_enum();
-      |       ^
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1261:7: note: ‘std::__detail::_Hash_code_base<_Key, _Value, _ExtractKey, _Hash, _RangeHash, _Unused, __cache_hash_code>::_Hash_code_base() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; bool __cache_hash_code = true]’ is implicitly deleted because the default definition would be ill-formed:
- 1261 |       _Hash_code_base() = default;
-      |       ^~~~~~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1261:7: error: use of deleted function ‘std::__detail::_Hashtable_ebo_helper<1, std::hash<Pos>, true>::~_Hashtable_ebo_helper()’
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1175:12: note: ‘std::__detail::_Hashtable_ebo_helper<1, std::hash<Pos>, true>::~_Hashtable_ebo_helper()’ is implicitly deleted because the default definition would be ill-formed:
- 1175 |     struct _Hashtable_ebo_helper<_Nm, _Tp, true>
-      |            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1175:12: error: use of deleted function ‘std::hash<Pos>::~hash()’
-/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: note: ‘std::hash<Pos>::~hash()’ is implicitly deleted because the default definition would be ill-formed:
-  102 |     struct hash : __hash_enum<_Tp>
-      |            ^~~~
-/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: error: ‘std::__hash_enum<_Tp, <anonymous> >::~__hash_enum() [with _Tp = Pos; bool <anonymous> = false]’ is private within this context
-/usr/include/c++/12.2.1/bits/functional_hash.h:84:7: note: declared private here
-   84 |       ~__hash_enum();
-      |       ^
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1674:7: error: use of deleted function ‘std::__detail::_Hash_code_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, true>::~_Hash_code_base()’
- 1674 |       _Hashtable_base() = default;
-      |       ^~~~~~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1239:12: note: ‘std::__detail::_Hash_code_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, true>::~_Hash_code_base()’ is implicitly deleted because the default definition would be ill-formed:
- 1239 |     struct _Hash_code_base
-      |            ^~~~~~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1239:12: error: use of deleted function ‘std::__detail::_Hashtable_ebo_helper<1, std::hash<Pos>, true>::~_Hashtable_ebo_helper()’
-/usr/include/c++/12.2.1/bits/hashtable.h:531:7: error: use of deleted function ‘std::__detail::_Hashtable_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::equal_to<Pos>, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Hashtable_traits<true, false, true> >::~_Hashtable_base()’
-  531 |       _Hashtable() = default;
-      |       ^~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1631:12: note: ‘std::__detail::_Hashtable_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::equal_to<Pos>, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Hashtable_traits<true, false, true> >::~_Hashtable_base()’ is implicitly deleted because the default definition would be ill-formed:
- 1631 |     struct _Hashtable_base
-      |            ^~~~~~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1631:12: error: use of deleted function ‘std::__detail::_Hash_code_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, true>::~_Hash_code_base()’
-/usr/include/c++/12.2.1/bits/hashtable.h:531:7: error: use of deleted function ‘constexpr std::_Enable_default_constructor<false, _Tag>::_Enable_default_constructor() [with _Tag = std::__detail::_Hash_node_base]’
-  531 |       _Hashtable() = default;
-      |       ^~~~~~~~~~
-In file included from /usr/include/c++/12.2.1/bits/hashtable.h:36:
-/usr/include/c++/12.2.1/bits/enable_special_members.h:113:15: note: declared here
-  113 |     constexpr _Enable_default_constructor() noexcept = delete;
-      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~
-hw1.cc:288:39: error: reference to ‘right’ is ambiguous
-  288 |                 if(check_move(curPos, right, &nextPos) & !is_pos_visited(&vistedPos, nextPos))
-      |                                       ^~~~~
-/usr/include/c++/12.2.1/bits/ios_base.h:1046:3: note: candidates are: ‘std::ios_base& std::right(ios_base&)’
- 1046 |   right(ios_base& __base)
-      |   ^~~~~
-hw1.cc:29:5: note:                 ‘Direction right’
-   29 |     right,
-      |     ^~~~~
-hw1.cc:290:39: error: reference to ‘left’ is ambiguous
-  290 |                 if(check_move(curPos, left, &nextPos) & !is_pos_visited(&vistedPos, nextPos))
-      |                                       ^~~~
-/usr/include/c++/12.2.1/bits/ios_base.h:1038:3: note: candidates are: ‘std::ios_base& std::left(ios_base&)’
- 1038 |   left(ios_base& __base)
-      |   ^~~~
-hw1.cc:30:5: note:                 ‘Direction left’
-   30 |     left,
+/usr/include/c++/12.2.1/bits/stl_iterator_base_funcs.h:242:5: note: ‘std::prev’ declared here
+  242 |     prev(_BidirectionalIterator __x, typename
       |     ^~~~
-hw1.cc: In member function ‘bool Map::is_pos_visited(std::unordered_map<Pos, bool>*, Pos)’:
-hw1.cc:299:30: error: request for member ‘find’ in ‘vistedPos’, which is of pointer type ‘std::unordered_map<Pos, bool>*’ (maybe you meant to use ‘->’ ?)
-  299 |             return vistedPos.find(pos) == vistedPos.end();
-      |                              ^~~~
-hw1.cc:299:53: error: request for member ‘end’ in ‘vistedPos’, which is of pointer type ‘std::unordered_map<Pos, bool>*’ (maybe you meant to use ‘->’ ?)
-  299 |             return vistedPos.find(pos) == vistedPos.end();
-      |                                                     ^~~
-hw1.cc: In member function ‘bool Map::check_action(State, Pos, Action*)’:
-hw1.cc:313:9: warning: no return statement in function returning non-void [-Wreturn-type]
-  313 |         }
-      |         ^
-hw1.cc: In member function ‘bool Map::check_move(Pos, Direction, Pos*)’:
-hw1.cc:322:28: error: reference to ‘right’ is ambiguous
-  322 |             else if(dir == right) nextPos->col += 1;
-      |                            ^~~~~
-/usr/include/c++/12.2.1/bits/ios_base.h:1046:3: note: candidates are: ‘std::ios_base& std::right(ios_base&)’
- 1046 |   right(ios_base& __base)
-      |   ^~~~~
-hw1.cc:29:5: note:                 ‘Direction right’
-   29 |     right,
-      |     ^~~~~
-hw1.cc:324:28: error: reference to ‘left’ is ambiguous
-  324 |             else if(dir == left) nextPos->col -= 1;
-      |                            ^~~~
-/usr/include/c++/12.2.1/bits/ios_base.h:1038:3: note: candidates are: ‘std::ios_base& std::left(ios_base&)’
- 1038 |   left(ios_base& __base)
-      |   ^~~~
-hw1.cc:30:5: note:                 ‘Direction left’
-   30 |     left,
-      |     ^~~~
-hw1.cc:326:45: error: cannot convert ‘Pos*’ to ‘Pos’
-  326 |             mapObj = get_renderedMap_object(nextPos);
-      |                                             ^~~~~~~
-      |                                             |
-      |                                             Pos*
-hw1.cc:339:41: note:   initializing argument 1 of ‘char Map::get_renderedMap_object(Pos)’
-  339 |         char get_renderedMap_object(Pos pos){
-      |                                     ~~~~^~~
-hw1.cc: In constructor ‘Solver::Solver(char*)’:
-hw1.cc:385:33: error: request for member ‘get_state’ in ‘((Solver*)this)->Solver::map’, which is of pointer type ‘Map*’ (maybe you meant to use ‘->’ ?)
-  385 |         nextStateQueue.push(map.get_state());
-      |                                 ^~~~~~~~~
-hw1.cc: In member function ‘void Solver::exploreOneStep()’:
-hw1.cc:392:21: error: no match for ‘operator[]’ (operand types are ‘std::unordered_map<std::bitset<8>, bool>’ and ‘std::bitset<64>’)
-  392 |         vistedBoxPos[state.boxPos] = true;
-      |                     ^
-/usr/include/c++/12.2.1/bits/unordered_map.h:979:7: note: candidate: ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::mapped_type& std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::operator[](const key_type&) [with _Key = std::bitset<8>; _Tp = bool; _Hash = std::hash<std::bitset<8> >; _Pred = std::equal_to<std::bitset<8> >; _Alloc = std::allocator<std::pair<const std::bitset<8>, bool> >; mapped_type = bool; key_type = std::bitset<8>]’
-  979 |       operator[](const key_type& __k)
-      |       ^~~~~~~~
-/usr/include/c++/12.2.1/bits/unordered_map.h:979:34: note:   no known conversion for argument 1 from ‘std::bitset<64>’ to ‘const std::unordered_map<std::bitset<8>, bool>::key_type&’ {aka ‘const std::bitset<8>&’}
-  979 |       operator[](const key_type& __k)
-      |                  ~~~~~~~~~~~~~~~~^~~
-/usr/include/c++/12.2.1/bits/unordered_map.h:983:7: note: candidate: ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::mapped_type& std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::operator[](key_type&&) [with _Key = std::bitset<8>; _Tp = bool; _Hash = std::hash<std::bitset<8> >; _Pred = std::equal_to<std::bitset<8> >; _Alloc = std::allocator<std::pair<const std::bitset<8>, bool> >; mapped_type = bool; key_type = std::bitset<8>]’
-  983 |       operator[](key_type&& __k)
-      |       ^~~~~~~~
-/usr/include/c++/12.2.1/bits/unordered_map.h:983:29: note:   no known conversion for argument 1 from ‘std::bitset<64>’ to ‘std::unordered_map<std::bitset<8>, bool>::key_type&&’ {aka ‘std::bitset<8>&&’}
-  983 |       operator[](key_type&& __k)
-      |                  ~~~~~~~~~~~^~~
-hw1.cc:395:9: error: ‘get_available_actions’ was not declared in this scope
-  395 |         get_available_actions(state, &action_list);
-      |         ^~~~~~~~~~~~~~~~~~~~~
-hw1.cc:407:45: error: cannot convert ‘bitset<64>’ to ‘bitset<8>’
-  407 |             if(!is_boxPos_visited(nextState.boxPos)){
-      |                                   ~~~~~~~~~~^~~~~~
-      |                                             |
-      |                                             bitset<64>
-hw1.cc:422:38: note:   initializing argument 1 of ‘bool Solver::is_boxPos_visited(std::bitset<8>)’
-  422 |     bool is_boxPos_visited(bitset<8> boxPos){
-      |                            ~~~~~~~~~~^~~~~~
-/usr/include/c++/12.2.1/bits/hashtable.h: In instantiation of ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::~_Hashtable() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’:
-/usr/include/c++/12.2.1/bits/unordered_map.h:102:11:   required from here
-/usr/include/c++/12.2.1/bits/hashtable.h:1586:5: error: use of deleted function ‘std::__detail::_Hashtable_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::equal_to<Pos>, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Hashtable_traits<true, false, true> >::~_Hashtable_base()’
- 1586 |     }
-      |     ^
-/usr/include/c++/12.2.1/bits/hashtable.h:1578:21: error: static assertion failed: Cache the hash code or qualify your functors involved in hash code and bucket index computation with noexcept
- 1578 |       static_assert(noexcept(declval<const __hash_code_base_access&>()
-      |                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- 1579 |                         ._M_bucket_index(declval<const __node_value_type&>(),
-      |                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- 1580 |                                          (std::size_t)0)),
-      |                                          ~~~~~~~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable.h:1578:21: note: ‘false’ evaluates to false
-/usr/include/c++/12.2.1/bits/hashtable_policy.h: In instantiation of ‘std::__detail::_Hash_code_base<_Key, _Value, _ExtractKey, _Hash, _RangeHash, _Unused, __cache_hash_code>::__hash_code std::__detail::_Hash_code_base<_Key, _Value, _ExtractKey, _Hash, _RangeHash, _Unused, __cache_hash_code>::_M_hash_code(const _Key&) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; bool __cache_hash_code = true; __hash_code = long unsigned int]’:
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:773:45:   required from ‘std::__detail::_Map_base<_Key, std::pair<const _Key, _Val>, _Alloc, std::__detail::_Select1st, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, true>::mapped_type& std::__detail::_Map_base<_Key, std::pair<const _Key, _Val>, _Alloc, std::__detail::_Select1st, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, true>::operator[](const key_type&) [with _Key = Pos; _Val = bool; _Alloc = std::allocator<std::pair<const Pos, bool> >; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>; mapped_type = bool; key_type = Pos]’
-/usr/include/c++/12.2.1/bits/unordered_map.h:980:20:   required from ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::mapped_type& std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::operator[](const key_type&) [with _Key = Pos; _Tp = bool; _Hash = std::hash<Pos>; _Pred = std::equal_to<Pos>; _Alloc = std::allocator<std::pair<const Pos, bool> >; mapped_type = bool; key_type = Pos]’
-hw1.cc:281:33:   required from here
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1268:23: error: static assertion failed: hash function must be invocable with an argument of key type
- 1268 |         static_assert(__is_invocable<const _Hash&, const _Key&>{},
-      |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1268:23: note: ‘std::__is_invocable<const std::hash<Pos>&, const Pos&>()’ evaluates to false
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1270:25: error: no match for call to ‘(const std::hash<Pos>) (const Pos&)’
- 1270 |         return _M_hash()(__k);
-      |                ~~~~~~~~~^~~~~
-In file included from /usr/include/c++/12.2.1/string:48:
-/usr/include/c++/12.2.1/bits/stl_function.h: In instantiation of ‘constexpr bool std::equal_to<_Tp>::operator()(const _Tp&, const _Tp&) const [with _Tp = Pos]’:
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1688:16:   required from ‘bool std::__detail::_Hashtable_base<_Key, _Value, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _Traits>::_M_key_equals(const _Key&, const std::__detail::_Hash_node_value<_Value, typename _Traits::__hash_cached::value>&) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _Traits = std::__detail::_Hashtable_traits<true, false, true>; typename _Traits::__hash_cached = std::__detail::_Hashtable_traits<true, false, true>::__hash_cached]’
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:1707:39:   required from ‘bool std::__detail::_Hashtable_base<_Key, _Value, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _Traits>::_M_equals(const _Key&, __hash_code, const std::__detail::_Hash_node_value<_Value, typename _Traits::__hash_cached::value>&) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _Traits = std::__detail::_Hashtable_traits<true, false, true>; __hash_code = long unsigned int; typename _Traits::__hash_cached = std::__detail::_Hashtable_traits<true, false, true>::__hash_cached]’
-/usr/include/c++/12.2.1/bits/hashtable.h:1937:23:   required from ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::__node_base_ptr std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::_M_find_before_node(size_type, const key_type&, __hash_code) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>; __node_base_ptr = std::__detail::_Hashtable_alloc<std::allocator<std::__detail::_Hash_node<std::pair<const Pos, bool>, true> > >::__node_base*; size_type = long unsigned int; key_type = Pos; __hash_code = long unsigned int]’
-/usr/include/c++/12.2.1/bits/hashtable.h:816:50:   required from ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::__node_ptr std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::_M_find_node(size_type, const key_type&, __hash_code) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>; __node_ptr = std::allocator<std::__detail::_Hash_node<std::pair<const Pos, bool>, true> >::value_type*; size_type = long unsigned int; key_type = Pos; __hash_code = long unsigned int]’
-/usr/include/c++/12.2.1/bits/hashtable_policy.h:775:42:   required from ‘std::__detail::_Map_base<_Key, std::pair<const _Key, _Val>, _Alloc, std::__detail::_Select1st, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, true>::mapped_type& std::__detail::_Map_base<_Key, std::pair<const _Key, _Val>, _Alloc, std::__detail::_Select1st, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, true>::operator[](const key_type&) [with _Key = Pos; _Val = bool; _Alloc = std::allocator<std::pair<const Pos, bool> >; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>; mapped_type = bool; key_type = Pos]’
-/usr/include/c++/12.2.1/bits/unordered_map.h:980:20:   required from ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::mapped_type& std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::operator[](const key_type&) [with _Key = Pos; _Tp = bool; _Hash = std::hash<Pos>; _Pred = std::equal_to<Pos>; _Alloc = std::allocator<std::pair<const Pos, bool> >; mapped_type = bool; key_type = Pos]’
-hw1.cc:281:33:   required from here
-/usr/include/c++/12.2.1/bits/stl_function.h:378:20: error: no match for ‘operator==’ (operand types are ‘const Pos’ and ‘const Pos’)
-  378 |       { return __x == __y; }
-      |                ~~~~^~~~~~
-In file included from /usr/include/c++/12.2.1/iosfwd:40,
-                 from /usr/include/c++/12.2.1/ios:38:
-/usr/include/c++/12.2.1/bits/postypes.h:192:5: note: candidate: ‘template<class _StateT> bool std::operator==(const fpos<_StateT>&, const fpos<_StateT>&)’
-  192 |     operator==(const fpos<_StateT>& __lhs, const fpos<_StateT>& __rhs)
-      |     ^~~~~~~~
-/usr/include/c++/12.2.1/bits/postypes.h:192:5: note:   template argument deduction/substitution failed:
-/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::fpos<_StateT>’
-  378 |       { return __x == __y; }
-      |                ~~~~^~~~~~
-In file included from /usr/include/c++/12.2.1/string:41:
-/usr/include/c++/12.2.1/bits/allocator.h:219:5: note: candidate: ‘template<class _T1, class _T2> bool std::operator==(const allocator<_CharT>&, const allocator<_T2>&)’
-  219 |     operator==(const allocator<_T1>&, const allocator<_T2>&)
-      |     ^~~~~~~~
-/usr/include/c++/12.2.1/bits/allocator.h:219:5: note:   template argument deduction/substitution failed:
-/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::allocator<_CharT>’
-  378 |       { return __x == __y; }
-      |                ~~~~^~~~~~
-In file included from /usr/include/c++/12.2.1/string:47:
-/usr/include/c++/12.2.1/bits/stl_iterator.h:444:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const reverse_iterator<_Iterator>&, const reverse_iterator<_Iterator>&)’
-  444 |     operator==(const reverse_iterator<_Iterator>& __x,
-      |     ^~~~~~~~
-/usr/include/c++/12.2.1/bits/stl_iterator.h:444:5: note:   template argument deduction/substitution failed:
-/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::reverse_iterator<_Iterator>’
-  378 |       { return __x == __y; }
-      |                ~~~~^~~~~~
-/usr/include/c++/12.2.1/bits/stl_iterator.h:489:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const reverse_iterator<_Iterator>&, const reverse_iterator<_IteratorR>&)’
-  489 |     operator==(const reverse_iterator<_IteratorL>& __x,
-      |     ^~~~~~~~
-/usr/include/c++/12.2.1/bits/stl_iterator.h:489:5: note:   template argument deduction/substitution failed:
-/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::reverse_iterator<_Iterator>’
-  378 |       { return __x == __y; }
-      |                ~~~~^~~~~~
-/usr/include/c++/12.2.1/bits/stl_iterator.h:1656:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorR>&)’
- 1656 |     operator==(const move_iterator<_IteratorL>& __x,
-      |     ^~~~~~~~
-/usr/include/c++/12.2.1/bits/stl_iterator.h:1656:5: note:   template argument deduction/substitution failed:
-/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::move_iterator<_IteratorL>’
-  378 |       { return __x == __y; }
-      |                ~~~~^~~~~~
-/usr/include/c++/12.2.1/bits/stl_iterator.h:1726:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorL>&)’
- 1726 |     operator==(const move_iterator<_Iterator>& __x,
-      |     ^~~~~~~~
-/usr/include/c++/12.2.1/bits/stl_iterator.h:1726:5: note:   template argument deduction/substitution failed:
-/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::move_iterator<_IteratorL>’
-  378 |       { return __x == __y; }
-      |                ~~~~^~~~~~
+hw1.cc:655:22: error: request for member ‘is_reachable’ in ‘*((Solver*)this)->Solver::map’, which is of non-class type ‘int’
+  655 |             if(!map->is_reachable(state, curPos, visitedPos)){return false;}
+      |                      ^~~~~~~~~~~~
+hw1.cc: In member function ‘bool Solver::is_in_vistedCollidedState(int)’:
+hw1.cc:662:18: error: ‘vistedCollidedState’ was not declared in this scope; did you mean ‘is_in_vistedCollidedState’?
+  662 |         return !(vistedCollidedState->find(boxPos) == vistedCollidedState->end());
+      |                  ^~~~~~~~~~~~~~~~~~~
+      |                  is_in_vistedCollidedState
+hw1.cc:662:44: error: ‘boxPos’ was not declared in this scope
+  662 |         return !(vistedCollidedState->find(boxPos) == vistedCollidedState->end());
+      |                                            ^~~~~~
+hw1.cc: In member function ‘bool Solver::is_in_vistedState(int)’:
+hw1.cc:666:18: error: ‘vistedState’ was not declared in this scope
+  666 |         return !(vistedState->find(boxPos) == vistedState->end());
+      |                  ^~~~~~~~~~~
+hw1.cc:666:36: error: ‘boxPos’ was not declared in this scope
+  666 |         return !(vistedState->find(boxPos) == vistedState->end());
+      |                                    ^~~~~~
 make: *** [<builtin>: hw1] Error 1

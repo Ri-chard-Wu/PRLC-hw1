@@ -17,11 +17,11 @@
 
 struct State{
     bitset<64> boxPos;
-    char row, col;
+    unsigned char row, col;
 };
 
 struct Pos{
-    char row, col;
+    unsigned char row, col;
 };
 
 enum Dir{
@@ -32,9 +32,11 @@ enum Dir{
 };
 
 struct Action{
-    char row, col;
+    unsigned char row, col;
     Dir dir;
 };
+
+
 
 
 class Map{
@@ -279,156 +281,15 @@ class Map{
                 nextPosQueue.pop();
                 vistedPos[curPos] = true;
 
-                add_local_available_action(renderedMap, curPos, &action_list);
+                add_local_action(renderedMap, curPos, &action_list);
                 
                 for(int dir=0; dir<=3; dir++){
-                    check_move(renderedMap, curPos, (Dir)dir, &vistedPos, &nextPosQueue);
+                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vistedPos, &nextPosQueue);
                 }
             }
         }
 
-
-        bool willbe_dead_state(char* renderedMap, Action action){
-
-            Pos curPos{.row{action.row}, .col{action.col}};
-            Pos o_pos, x_pos, probe_pos;
-
-            char mapObj;
-            
-            move(curPos, action.dir, &o_pos);
-            move(o_pos, action.dir, &x_pos);
-
-            if(){
-                // Fast path
-                // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.'  
-                int dir1, dir2;
-                Pos probe_pos1, probe_pos2;
-                char mapObj_adj1, mapObj_adj2;
-                bool is_dead = true;
-
-                // mapObj_adj = get_map_object(renderedMap, x_pos);
-
-
-                for(int dir=0; dir<=3; dir++){
-                    
-                    dir1 = dir; 
-                    dir2 = (dir1 + 1)%4;
-
-                    move(x_pos, dir1, &probe_pos1);
-                    mapObj_adj1 = get_map_object(renderedMap, probe_pos1);
-
-                    move(x_pos, dir2, &probe_pos2);
-                    mapObj_adj1 = get_map_object(renderedMap, probe_pos2);
-
-                    if(mapObj_adj1 == '#' && mapObj_adj2 == '#' && mapObj_adj != '.'){
-                        return true;
-                    }
-                    else if(mapObj_adj1 == '#' && mapObj_adj2 == 'x'){
-
-                        move(probe_pos2, (Dir)((dir2 + 1)%4), &probe_pos);
-                        mapObj_adj = get_map_object(renderedMap, probe_pos);
-                        is_dead = is_dead && (mapObj_adj != ' ' && mapObj_adj != '.');
-
-                        move(probe_pos2, (Dir)((dir2 + 3)%4), &probe_pos);
-                        mapObj_adj = get_map_object(renderedMap, probe_pos);
-                        is_dead = is_dead && (mapObj_adj != ' ' && mapObj_adj != '.');
-
-                        return is_dead;
-   
-                    }
-                    else if(mapObj_adj1 == '#' && mapObj_adj2 == 'X'){
-
-   
-                    }                    
-                    else if(mapObj_adj1 == 'x' && mapObj_adj2 == '#'){
-
-                        move(probe_pos1, (Dir)((dir2 + 1)%4), &probe_pos);
-                        mapObj_adj = get_map_object(renderedMap, probe_pos);
-                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
-
-                        move(probe_pos1, (Dir)((dir2 + 3)%4), &probe_pos);
-                        mapObj_adj = get_map_object(renderedMap, probe_pos);
-                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
-
-                        return is_dead;
-    
-                    }
-                    else if(mapObj_adj1 == 'x' && mapObj_adj2 == 'x'){
-
-                        move(probe_pos2, (Dir)((dir2 + 1)%4), &probe_pos);
-                        mapObj_adj = get_map_object(renderedMap, probe_pos);
-                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
-
-                        move(probe_pos2, (Dir)((dir2 + 3)%4), &probe_pos);
-                        mapObj_adj = get_map_object(renderedMap, probe_pos);
-                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
-   
-                        move(probe_pos1, (Dir)((dir2 + 1)%4), &probe_pos);
-                        mapObj_adj = get_map_object(renderedMap, probe_pos);
-                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
-
-                        move(probe_pos1, (Dir)((dir2 + 3)%4), &probe_pos);
-                        mapObj_adj = get_map_object(renderedMap, probe_pos);
-                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
-
-                        return is_dead;
-                    }                    
-                }
-            }
-            else if(){
-                // Fast path
-                // - 4 box form square, not all of them are on '.'
-
-            }
-            else{
-                // Slow path
-                // 1. find all available action on a box
-                // 2. get pos needed to do the action
-                // 3. use BFS on `map` to see whether those pos's are reachable.
-                // 4. if all of pos are unreachable and 'x' is not on '.', return true.
-
-                char* rawMap = new char[fileLen];
-                reset_renderedMap(rawMap);
-
-                queue<Pos> nextPosQueue;
-                queue<Pos> pushPosQueue;
-                unordered_map<Pos, bool> vistedPos;
-                
-                curPos = o_pos;
-                nextPosQueue.push(curPos);
-                                
-                for(int dir=0; dir<=3; dir++){
-                    move(x_pos, (Dir)dir, &probe_pos);
-                    mapObj = get_map_object(rawMap, probe_pos);
-                    if(mapObj == ' ' || mapObj == '.') pushPosQueue.push(probe_pos);
-                }
-
-
-                while(!nextPosQueue.empty()){
-                    curPos = nextPosQueue.front();
-                    nextPosQueue.pop();
-                    vistedPos[curPos] = true;
-
-                    for(int dir=0; dir<=3; dir++){
-                        check_move(rawMap, curPos, (Dir)dir, &vistedPos, &nextPosQueue);
-                    }
-                }
-                
-                bool is_all_unreachable = true;
-                while(!pushPosQueue.empty()){
-                    pushPos = pushPosQueue.front();
-                    pushPosQueue.pop();
-
-                    is_all_unreachable = is_all_unreachable && !is_pos_visited(&vistedPos, pushPos);
-                    if(!is_all_unreachable) break;
-                }
-
-                return is_all_unreachable;
-            }            
-        }
-
-
-        void add_local_available_action(char* renderedMap, Pos curPos, list<Action>* action_list){
+        void add_local_action(char* renderedMap, Pos curPos, list<Action>* action_list){
             // - Find out what adjacent boxes can be pushed.
             // - Do nothing if no box is adjacent.
 
@@ -456,13 +317,164 @@ class Map{
             }
         }
 
+        bool willbe_dead_state(char* renderedMap, Action action){
+
+            Pos curPos{.row{action.row}, .col{action.col}};
+            Pos o_pos, x_pos;
+            
+            move(curPos, action.dir, &o_pos);
+            move(o_pos, action.dir, &x_pos);
+
+            if(is_dead_corner(renderedMap, x_pos)){return true;}
+            else if(is_pushPos_unreachable(renderedMap, x_pos)){return true;}            
+        }
+
+
+        bool is_dead_corner(char* renderedMap, Pos x_pos){
+            // Fast path
+            // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.' 
+
+            int dir1, dir2;
+            Pos probe_pos, probe_pos1, probe_pos2;
+            char mapObj, mapObj_adj1, mapObj_adj2, mapObj_x_pos;
+            bool is_dead;
+
+            mapObj_x_pos = get_map_object(renderedMap, x_pos);
+
+            for(int dir=0; dir<=3; dir++){
+                
+                dir1 = dir; 
+                dir2 = (dir1 + 1)%4;
+
+                move(x_pos, dir1, &probe_pos1);
+                mapObj_adj1 = get_map_object(renderedMap, probe_pos1);
+
+                move(x_pos, dir2, &probe_pos2);
+                mapObj_adj1 = get_map_object(renderedMap, probe_pos2);
+
+
+                if(mapObj_adj1 == '#' && mapObj_adj2 == '#' && mapObj_adj != '.'){ 
+                    return true;
+                }
+                else if(mapObj_adj1 == '#' && mapObj_adj2 == 'x' ||
+                        mapObj_adj1 == '#' && mapObj_adj2 == 'X' && mapObj_x_pos == ' '){
+                    
+                    is_dead = true;
+
+                    move(probe_pos2, (Dir)((dir2 + 1)%4), &probe_pos);
+                    mapObj = get_map_object(renderedMap, probe_pos);
+                    is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+
+                    move(probe_pos2, (Dir)((dir2 + 3)%4), &probe_pos);
+                    mapObj = get_map_object(renderedMap, probe_pos);
+                    is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+
+                    if(is_dead) return true;
+
+                }                   
+                else if(mapObj_adj1 == 'x' && mapObj_adj2 == '#' ||
+                        mapObj_adj1 == 'X' && mapObj_adj2 == '#' && mapObj_x_pos == ' '){
+                    
+                    is_dead = true;
+
+                    move(probe_pos1, (Dir)((dir1 + 1)%4), &probe_pos);
+                    mapObj = get_map_object(renderedMap, probe_pos);
+                    is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+
+                    move(probe_pos1, (Dir)((dir1 + 3)%4), &probe_pos);
+                    mapObj = get_map_object(renderedMap, probe_pos);
+                    is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+
+                    return is_dead;
+
+                }
+                else if((mapObj_adj1 == 'x' && mapObj_adj2 == 'x') ||
+                        (mapObj_adj1 == 'x' && mapObj_adj2 == 'X') ||
+                        (mapObj_adj1 == 'X' && mapObj_adj2 == 'x') ||
+                        (mapObj_adj1 == 'X' && mapObj_adj2 == 'X' && mapObj_x_pos == ' ')){
+                    
+                    is_dead = true;
+
+                    move(probe_pos1, (Dir)((dir1 + 1)%4), &probe_pos);
+                    mapObj = get_map_object(renderedMap, probe_pos);
+                    is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+
+                    move(probe_pos1, (Dir)((dir1 + 3)%4), &probe_pos);
+                    mapObj = get_map_object(renderedMap, probe_pos);
+                    is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+                    
+
+                    move(probe_pos2, (Dir)((dir2 + 1)%4), &probe_pos);
+                    mapObj = get_map_object(renderedMap, probe_pos);
+                    is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+
+                    move(probe_pos2, (Dir)((dir2 + 3)%4), &probe_pos);
+                    mapObj = get_map_object(renderedMap, probe_pos);
+                    is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+
+                    return is_dead;
+                }                    
+            }            
+        }
+        
+
+        void is_pushPos_unreachable(Pos o_pos, Pos x_pos){
+            // Slow path
+            // 1. find all available action on a box
+            // 2. get pos needed to do the action
+            // 3. use BFS on `map` to see whether those pos's are reachable.
+            // 4. if all of pos are unreachable and 'x' is not on '.', return true.
+
+            char* rawMap = new char[fileLen];
+            reset_renderedMap(rawMap);
+            char mapObj;
+
+            queue<Pos> nextPosQueue;
+            queue<Pos> pushPosQueue;
+            unordered_map<Pos, bool> vistedPos;
+            
+            Pos probe_pos, curPos = o_pos;
+            nextPosQueue.push(curPos);
+                            
+            for(int dir=0; dir<=3; dir++){
+                move(x_pos, (Dir)dir, &probe_pos);
+                mapObj = get_map_object(rawMap, probe_pos);
+                if(mapObj == ' ' || mapObj == '.') pushPosQueue.push(probe_pos);
+            }
+
+
+            while(!nextPosQueue.empty()){
+                curPos = nextPosQueue.front();
+                nextPosQueue.pop();
+                vistedPos[curPos] = true;
+
+                for(int dir=0; dir<=3; dir++){
+                    add_unvisited_nextPos(rawMap, curPos, (Dir)dir, &vistedPos, &nextPosQueue);
+                }
+            }
+            
+            bool is_all_unreachable = true;
+            while(!pushPosQueue.empty()){
+                pushPos = pushPosQueue.front();
+                pushPosQueue.pop();
+
+                is_all_unreachable = is_all_unreachable && !is_pos_visited(&vistedPos, pushPos);
+                if(!is_all_unreachable) break;
+            }
+
+            return is_all_unreachable;            
+        }
+
+
+
+
 
         bool is_pos_visited(unordered_map<Pos, bool> *vistedPos, Pos pos){
             return vistedPos.find(pos) == vistedPos.end();
         }
 
 
-        bool check_move(char *renderedMap, Pos curPos, Dir dir, 
+        bool add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
                     unordered_map<Pos, bool> *vistedPos, queue<Pos> *nextPosQueue){
             // check whether the position in `dir` is empty space (' ' or '.').
                 // If so and if not already explored, add to 'nextPosQueue'.
@@ -471,8 +483,8 @@ class Map{
             char mapObj;
 
             move(curPos, dir, &nextPos);
-
             mapObj = get_map_object(renderedMap, nextPos); 
+
             if(mapObj == '.' || mapObj == ' '){
                 if(!is_pos_visited(vistedPos, nextPos)){
                     nextPosQueue->push(nextPos);
@@ -554,51 +566,118 @@ class Solver{
         nextStateQueue.push(map.get_state());
     }
 
-    void exploreOneStep(){
-        State state = nextStateQueue.front();
-        nextStateQueue.pop();
 
-        vistedBoxPos[state.boxPos] = true;
+    void explore(){
 
+        queue<State> nextStateQueue;
+
+        unordered_map<bitset<64>, Pos> vistedState;
+        unordered_map<bitset<64>, PosNode*> vistedCollidedState;
+
+        State state, nextState;
         list<Action> action_list;
-        get_available_actions(state, &action_list);
+        // Pos pos;
+        
+        bool done = false;
 
-        State nextState;
-        while(!action_list.empty()){
-            nextState = state;
-            map->act(&nextState, action_list.front());
-            
-            if(map->is_done(nextState)){
-                done = true;
-                break;
-            } 
+        while (!done) {
+            state = nextStateQueue.front();
+            nextStateQueue.pop();
 
-            if(!is_boxPos_visited(nextState.boxPos)){
-                nextStateQueue.push(nextState);
+            add_visited_state(&vistedState, &vistedCollidedState, state);
+                        
+            get_available_actions(state, &action_list);
+
+            while(!action_list.empty()){
+                nextState = state;
+                map->act(&nextState, action_list.front());
+                action_list.pop_front()
+                
+                if(map->is_done(nextState)){
+                    done = true;
+                    break;
+                } 
+
+                if(!is_state_visited(&vistedState, &vistedCollidedState, nextState)){
+                    nextStateQueue.push(nextState);
+                }
             }
         }
     }
 
 
-    void explore(){
-        done = false;
-        while (!done) {
-            exploreOneStep();
+    void add_visited_state(unordered_map<bitset<64>, Pos> *vistedState, 
+                    unordered_map<bitset<64>, PosNode*> *vistedCollidedState, State state){
+        
+        Pos pos;
+        pos.row = state.row;
+        pos.col = state.col;
+     
+        if(vistedState->find(state.boxPos) == vistedState->end()){ // not inside.
+            (*vistedState)[state.boxPos] = pos;
+        }else{
+            insert_PosNode(&vistedCollidedState, state);
         }
     }
 
+    void insert_PosNode(unordered_map<bitset<64>, PosNode> *vistedCollidedState, State state){
 
-    bool is_boxPos_visited(bitset<8> boxPos){
-        return vistedBoxPos.find(boxPos) == vistedBoxPos.end();
     }
 
 
+    bool is_state_visited(unordered_map<bitset<64>, Pos> *vistedState, 
+                    unordered_map<bitset<64>, PosNode*> *vistedCollidedState, State state){
+
+        // key not found -> haven't been visited.
+        if(!is_in_vistedState(&vistedState, state.boxPos)){return false;}
+
+
+        Pos visitedPos = (*vistedState)[state.boxPos];
+        Pos curPos{.row{state.row}, .col{state.col}};
+
+
+        // Have same box positions, and mutually 
+            // reachable player positions *with the head* -> deemed visited.
+        if(map->is_reachable(state, curPos, visitedPos)){return true;}
+        
+
+        // key not found -> haven't been visited.
+        if(!is_in_vistedCollidedState(&vistedCollidedState, state.boxPos)){return false;}
+
+
+        // Have same box positions, but two mutually 
+            // unreachable player positions *with other collided pos*.   
+        PosNode *cur = (*vistedCollidedState)[state.boxPos];
+        PosNode *next = prev->next;
+
+        while(cur){
+            visitedPos = cur->pos;
+            if(!map->is_reachable(state, curPos, visitedPos)){return false;}
+        }
+                        
+    }
+    
+    bool is_in_vistedCollidedState(unordered_map<bitset<64>, PosNode*> *vistedCollidedState, 
+                                                                            bitset<64> boxPos){
+        return !(vistedCollidedState->find(boxPos) == vistedCollidedState->end());
+    }
+
+    bool is_in_vistedState(unordered_map<bitset<64>, Pos> *vistedState, bitset<64> boxPos){
+        return !(vistedState->find(boxPos) == vistedState->end());
+    }
+
+
+    // struct StateKey{
+    //     bitset<64> boxPos;
+    //     unsigned char idx;
+    // }
+
+    struct PosNode{
+        Pos pos;
+        PosNode *next;
+    }
+
     Map* map;
-    bool done;
-    queue<State> nextStateQueue;
-    unordered_map<bitset<8>, bool> vistedBoxPos;
-
-
 };
 
 
