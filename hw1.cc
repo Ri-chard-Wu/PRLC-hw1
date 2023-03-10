@@ -11,7 +11,7 @@
 #include <queue>
 #include <unordered_map>
 
-using namespace std;
+// using namespace std;
 
 
 
@@ -27,8 +27,8 @@ struct Pos{
 enum Direction{
     up,
     right,
-    left,
-    down
+    down,
+    left
 };
 
 struct Action{
@@ -261,6 +261,7 @@ class Map{
 
 
         void get_available_actions(State state, list<Action>* action_list){
+            // Do BFS to find what `action`'s are available given `state`.
 
             char* renderedMap = new char[fileLen];
             render_boxPos(renderedMap, state.boxPos);
@@ -279,75 +280,124 @@ class Map{
                 vistedPos[curPos] = true;
 
                 check_action(renderedMap, curPos, &action_list);
-
-                check_move(renderedMap, curPos, up, &vistedPos, &nextPosQueue);
-                check_move(renderedMap, curPos, right, &vistedPos, &nextPosQueue);
-                check_move(renderedMap, curPos, left, &vistedPos, &nextPosQueue);
-                check_move(renderedMap, curPos, down, &vistedPos, &nextPosQueue);
+                
+                for(int dir=0; dir<=3; dir++){
+                    check_move(renderedMap, curPos, (Direction)dir, &vistedPos, &nextPosQueue);
+                }
             }
-
         }
 
 
-        bool willbe_dead_state(State state, Action action){
+        bool willbe_dead_state(char* renderedMap, Action action){
 
-            // Fast path
-            // - 4 box form square, not all of them are on '.'
-            // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.'
-
-
-
-            // Slow path
-            // 1. find all available action on a box
-            // 2. get pos needed to do the action
-            // 3. use BFS on `map` to see whether those pos's are reachable.
-            // 4. if all of pos are unreachable and 'x' is not on '.', return true.
-            queue<Pos> nextPosQueue;
-            unordered_map<Pos, bool> vistedPos;
-
-            Pos nextPos;
             Pos curPos{.row{action.row}, .col{action.col}};
+            Pos o_pos, x_pos, probe_pos;
 
-            move(&curPos, action.dir);
-            Pos o_pos{.row{curPos.row}, .col{curPos.col}};
+            char mapObj, mapObj_adj1, mapObj_adj2;
 
-            move(&curPos, action.dir);
-            Pos x_pos{.row{curPos.row}, .col{curPos.col}};
+            move(curPos, action.dir, &o_pos);
+            move(o_pos, action.dir, x_pos);
 
-            curPos = o_pos;
-            nextPosQueue.push(curPos);
+            if(){
+                // Fast path
+                // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.'  
 
-            char* renderedMap = new char[fileLen];
-            reset_renderedMap(renderedMap);
+                move(x_pos, (Direction)3, &probe_pos);
+                mapObj_adj2 = get_map_object(renderedMap, probe_pos);
 
-            while(!nextPosQueue.empty()){
-                curPos = nextPosQueue.front();
-                nextPosQueue.pop();
-                vistedPos[curPos] = true;
+                for(int dir=0; dir<=3; dir++){
 
-                nextPos = curPos;
-                move(&nextPos, up);
+                    move(x_pos, dir, &probe_pos);
+                    mapObj_adj1 = get_map_object(renderedMap, probe_pos);
+
+                    if((mapObj_adj1 == '#' || mapObj_adj1 == 'x' || mapObj_adj1 == 'X') &&
+                            (mapObj_adj2 == '#' || mapObj_adj2 == 'x' || mapObj_adj2 == 'X')){
+
+                    }
+
+                    mapObj_adj2 = mapObj_adj1;
+                }
             }
+            else if(){
+                // Fast path
+                // - 4 box form square, not all of them are on '.'
+
+            }
+            else{
+                // Slow path
+                // 1. find all available action on a box
+                // 2. get pos needed to do the action
+                // 3. use BFS on `map` to see whether those pos's are reachable.
+                // 4. if all of pos are unreachable and 'x' is not on '.', return true.
+
+                char* rawMap = new char[fileLen];
+                reset_renderedMap(rawMap);
+
+                queue<Pos> nextPosQueue;
+                queue<Pos> pushPosQueue;
+                unordered_map<Pos, bool> vistedPos;
+                
+                curPos = o_pos;
+                nextPosQueue.push(curPos);
+                                
+                for(int dir=0; dir<=3; dir++){
+                    move(x_pos, (Direction)dir, &probe_pos);
+                    mapObj = get_map_object(rawMap, probe_pos);
+                    if(mapObj == ' ' || mapObj == '.') pushPosQueue.push(probe_pos);
+                }
+
+
+                while(!nextPosQueue.empty()){
+                    curPos = nextPosQueue.front();
+                    nextPosQueue.pop();
+                    vistedPos[curPos] = true;
+
+                    for(int dir=0; dir<=3; dir++){
+                        check_move(rawMap, curPos, (Direction)dir, &vistedPos, &nextPosQueue);
+                    }
+                }
+                
+                bool is_all_unreachable = true;
+                while(!pushPosQueue.empty()){
+                    pushPos = pushPosQueue.front();
+                    pushPosQueue.pop();
+
+                    is_all_unreachable = is_all_unreachable && !is_pos_visited(&vistedPos, pushPos);
+                    if(!is_all_unreachable) break;
+                }
+
+                return is_all_unreachable;
+            }            
         }
 
 
         bool check_action(char* renderedMap, Pos curPos, list<Action>* action_list){
+            // Find out what action (pushing which box, in what direction) 
+                // can be performed next.
+
+
             Pos probe_pos;
             char mapObj;
             Action action;
 
-            probe_pos = curPos;
-            probe_pos.row -= 1;
+            move(curPos, up, &probe_pos);
+
+            // probe_pos = curPos;
+            // probe_pos.row -= 1;
+
             mapObj = get_map_object(renderedMap, probe_pos); 
             if(mapObj == 'x' || mapObj == 'X'){
                 if(probe_pos.row > 1){
-                    probe_pos.row -= 1;
-                    mapObj = get_map_object(renderedMap, probe_pos);                     
+                    
+                    // probe_pos.row -= 1;
+                    move(probe_pos, up, &probe_pos);
+                    mapObj = get_map_object(renderedMap, probe_pos);      
+
                     if(mapObj == ' ' || mapObj == '.'){
                         action.dir = up;
                         action.row = curPos.row;
                         action.col = curPos.col;
-                        if(!willbe_dead_state(action)) action_list->push_back(action);
+                        if(!willbe_dead_state(renderedMap, action)) action_list->push_back(action);
                     }
                 }
             }
@@ -361,11 +411,13 @@ class Map{
 
         bool check_move(char *renderedMap, Pos curPos, Direction dir, 
                     unordered_map<Pos, bool> *vistedPos, queue<Pos> *nextPosQueue){
-            
-            Pos nextPos = curPos;
+            // check whether the position in `dir` is empty space (' ' or '.').
+                // If so and if not already explored, add to 'nextPosQueue'.
+
+            Pos nextPos;
             char mapObj;
 
-            move(&nextPos, dir);
+            move(curPos, dir, &nextPos);
 
             mapObj = get_map_object(renderedMap, nextPos); 
             if(mapObj == '.' || mapObj == ' '){
@@ -375,11 +427,15 @@ class Map{
             }
         }
 
-        void move(Pos *pos, Direction dir){
-            if(dir == up) pos->row -= 1;
-            else if(dir == right) pos->col += 1;
-            else if(dir == down) pos->row += 1;
-            else if(dir == left) pos->col -= 1;
+        void move(Pos curPos, Direction dir, Pos *nextPos){
+
+            nextPos->row = curPos.row;
+            nextPos->col = curPos.col;
+
+            if(dir == up) nextPos->row -= 1;
+            else if(dir == right) nextPos->col += 1;
+            else if(dir == down) nextPos->row += 1;
+            else if(dir == left) nextPos->col -= 1;
         }
 
         void act(State* state, Action action){
