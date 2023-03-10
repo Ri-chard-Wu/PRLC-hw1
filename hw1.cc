@@ -585,6 +585,7 @@ class Solver{
             nextStateQueue.pop();
 
             add_visited_state(&vistedState, &vistedCollidedState, state);
+                     
                         
             get_available_actions(state, &action_list);
 
@@ -620,8 +621,25 @@ class Solver{
         }
     }
 
-    void insert_PosNode(unordered_map<bitset<64>, PosNode> *vistedCollidedState, State state){
 
+    void insert_PosNode(unordered_map<bitset<64>, PosNode> *vistedCollidedState, State state){
+        
+        Pos pos;
+        pos.row = state.row;
+        pos.col = state.col;
+
+        PosNode *cur, *head;
+        cur->pos = pos;
+
+        if(!is_in_vistedCollidedState(&vistedCollidedState, state.boxPos)){
+            cur->next = NULL;
+        }
+        else{
+            head = (*vistedCollidedState)[state.boxPos];
+            cur->next = head; 
+        }
+
+        (*vistedCollidedState)[state.boxPos] = cur;
     }
 
 
@@ -645,22 +663,29 @@ class Solver{
         if(!is_in_vistedCollidedState(&vistedCollidedState, state.boxPos)){return false;}
 
 
-        // Have same box positions, but two mutually 
-            // unreachable player positions *with other collided pos*.   
-        PosNode *cur = (*vistedCollidedState)[state.boxPos];
-        PosNode *next = prev->next;
+  
+        PosNode *cur_ptr = (*vistedCollidedState)[state.boxPos];
 
-        while(cur){
-            visitedPos = cur->pos;
-            if(!map->is_reachable(state, curPos, visitedPos)){return false;}
+        while(cur_ptr){
+
+            visitedPos = cur_ptr->pos;
+
+            // Have same box positions, and mutually 
+                // reachable player positions *with other collided pos*. 
+            if(map->is_reachable(state, curPos, visitedPos)){return true;}
+            
+            cur_ptr = cur_ptr->next;
         }
-                        
+
+        return false;
     }
     
+
     bool is_in_vistedCollidedState(unordered_map<bitset<64>, PosNode*> *vistedCollidedState, 
                                                                             bitset<64> boxPos){
         return !(vistedCollidedState->find(boxPos) == vistedCollidedState->end());
     }
+
 
     bool is_in_vistedState(unordered_map<bitset<64>, Pos> *vistedState, bitset<64> boxPos){
         return !(vistedState->find(boxPos) == vistedState->end());
