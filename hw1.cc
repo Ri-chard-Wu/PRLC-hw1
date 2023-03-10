@@ -355,16 +355,13 @@ class Map{
 
             while(!nextPosQueue.empty()){
                 
-                fprintf(stderr, "\n[get_available_actions()]: in while loop.\n\n");
 
                 curPos = nextPosQueue.front();
                 nextPosQueue.pop();
                 vstdPosTbl[pos2key(curPos)] = true;
 
 
-
-
-                add_local_action(renderedMap, curPos, action_list);
+                add_local_action(renderedMap, curPos, action_list); // ok
 
                 fprintf(stderr, "\n[get_available_actions()] print_action_list:\n\n"); 
                 print_action_list(*action_list);
@@ -376,6 +373,8 @@ class Map{
                 }
             }
         }
+
+
 
         void add_local_action(char* renderedMap, Pos curPos, list<Action>* action_list){
             // - Find out what adjacent boxes can be pushed.
@@ -390,7 +389,7 @@ class Map{
                 move(curPos, (Dir)dir, &probe_pos);
                 mapObj = get_map_object(renderedMap, probe_pos); 
 
-                fprintf(stderr, "\n[add_local_action()] mapObj: %c\n\n", mapObj);
+                // fprintf(stderr, "\n[add_local_action()] mapObj: %c\n\n", mapObj);
 
                 if(mapObj == 'x' || mapObj == 'X'){
                 
@@ -401,27 +400,52 @@ class Map{
                         action.dir = (Dir)dir;
                         action.row = curPos.row;
                         action.col = curPos.col;
+
                         if(!is_dead_action(renderedMap, action)){
+
                             fprintf(stderr, "\n[add_local_action()] is not dead action.\n\n"); 
                             action_list->push_back(action);
+
                         }
                         else{
-                            fprintf(stderr, "\n[add_local_action()] is dead action.\n\n"); 
+                            fprintf(stderr, "\n[add_local_action()] is dead action. dir: %d\n\n", (int)dir); 
                         }
                     }
                 }
             }
         }
 
+
+
+
         bool is_dead_action(char* renderedMap, Action action){
 
             Pos curPos{.row{action.row}, .col{action.col}};
-            Pos o_pos, x_pos;
+            Pos o_pos, x_pos; // next pos
             
             move(curPos, action.dir, &o_pos);
             move(o_pos, action.dir, &x_pos);
 
-            if(is_dead_corner(renderedMap, x_pos)){
+            char* nextRenderedMap = new char[fileLen];
+            copy_map(renderedMap, nextRenderedMap);
+
+
+
+            fprintf(stderr, "\n[is_dead_action()] print_map:\n\n");
+            print_map(nextRenderedMap);    
+
+
+
+
+            safe_place_object(nextRenderedMap, o_pos, ' '); // remove 'x'.
+
+
+            fprintf(stderr, "\n[is_dead_action()] after safe_place_object, print_map:\n\n");
+            print_map(nextRenderedMap); 
+
+
+
+            if(is_dead_corner(nextRenderedMap, x_pos)){
                 fprintf(stderr, "\n[is_dead_action()] is_dead_corner.\n\n");
                 return true;
             }
@@ -431,6 +455,14 @@ class Map{
             }  
 
             return false;         
+        }
+
+
+
+        void copy_map(char* fromMap, char* toMap){
+            for(int i=0; i<fileLen; i++){
+                toMap[i] = fromMap[i];
+            }
         }
 
 
@@ -447,7 +479,7 @@ class Map{
 
             for(int dir=0; dir<=3; dir++){
 
-                fprintf(stderr, "\n[is_dead_action()] dir: %d.\n\n", dir);
+                // fprintf(stderr, "\n[is_dead_corner()] dir: %d.\n\n", dir);
 
 
 
@@ -462,7 +494,7 @@ class Map{
 
 
                 if(mapObj_adj1 == '#' && mapObj_adj2 == '#' && mapObj_x_pos != '.'){ 
-                    fprintf(stderr, "\n[is_dead_action()] 0\n\n");
+                    fprintf(stderr, "\n[is_dead_corner()] type 0\n\n");
                     return true;
                 }
                 else if(mapObj_adj1 == '#' && mapObj_adj2 == 'x' ||
@@ -479,7 +511,7 @@ class Map{
                     is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
 
                     if(is_dead){
-                        fprintf(stderr, "\n[is_dead_action()] 1\n\n");
+                        fprintf(stderr, "\n[is_dead_corner()] type 1\n\n");
                         return true;
                     } 
 
@@ -498,7 +530,7 @@ class Map{
                     is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
 
                     if(is_dead){
-                        fprintf(stderr, "\n[is_dead_action()] 2\n\n");
+                        fprintf(stderr, "\n[is_dead_corner()] type 2\n\n");
                         return true;
                     } 
                 }
@@ -527,7 +559,7 @@ class Map{
                     is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
 
                     if(is_dead){
-                        fprintf(stderr, "\n[is_dead_action()] 3\n\n");
+                        fprintf(stderr, "\n[is_dead_corner()] type 3\n\n");
                         return true;
                     }                     
                 }              
@@ -596,19 +628,26 @@ class Map{
             // check whether the position in `dir` is empty space (' ' or '.').
                 // If so and if not already explored, add to 'nextPosQueue'.
 
-            fprintf(stderr, "\n[add_unvisited_nextPos()]:\n\n"); 
+            fprintf(stderr, "\n[add_unvisited_nextPos()] dir: %d\n", (int)dir); 
 
             Pos nextPos;
             char mapObj;
 
             move(curPos, dir, &nextPos);
             mapObj = get_map_object(renderedMap, nextPos); 
+            
+            fprintf(stderr, "[add_unvisited_nextPos()] mapObj: %c\n", mapObj);
 
             if(mapObj == '.' || mapObj == ' '){
                 if(!is_pos_visited(vstdPosTbl, nextPos)){
+                    fprintf(stderr, "[add_unvisited_nextPos()] pos not visited.\n");
                     nextPosQueue->push(nextPos);
+                }else{
+                    fprintf(stderr, "[add_unvisited_nextPos()] pos visited.\n");
                 }
             }
+
+            fprintf(stderr, "\n\n");
         }
 
 
@@ -709,6 +748,30 @@ class Map{
             // print_map(renderedMap);
         }
 
+
+
+        void safe_place_object(char* map, Pos pos, char ch){
+            char mapObj;
+            mapObj = get_map_object(map, pos);
+
+            if(ch == 'o' || ch == 'O'){
+                if(mapObj == ' ') set_map_object(map, pos, 'o');
+                else if(mapObj == '.') set_map_object(map, pos, 'O');
+                else{fprintf(stderr, "\n[safe_place_object()]:invalid placement.\n\n"); exit(-1);}
+            }
+            else if(ch == 'x' || ch == 'X'){
+                if(mapObj == ' ') set_map_object(map, pos, 'x');
+                else if(mapObj == '.') set_map_object(map, pos, 'X');
+                else{fprintf(stderr, "\n[safe_place_object()]:invalid placement.\n\n"); exit(-1);}
+            }
+            else if(ch == ' '){
+                if(mapObj == 'o' || mapObj == 'x') set_map_object(map, pos, ' ');
+                else if(mapObj == 'O' || mapObj == 'X') set_map_object(map, pos, '.');
+            }
+            else{
+                set_map_object(map, pos, ch);
+            }        
+        }
 
         void set_map_object(char* map, Pos pos, char ch){
             map[rowBegins[pos.row] + pos.col] = ch;
