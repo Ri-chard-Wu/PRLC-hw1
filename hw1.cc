@@ -43,7 +43,10 @@ struct Action{
     Dir dir;
 };
 
-
+struct PosNode{
+    Pos pos;
+    PosNode *next;
+};
 
 
 
@@ -345,7 +348,9 @@ class Map{
             move(o_pos, action.dir, &x_pos);
 
             if(is_dead_corner(renderedMap, x_pos)){return true;}
-            else if(is_pushPos_unreachable(o_pos, x_pos)){return true;}            
+            else if(is_pushPos_unreachable(o_pos, x_pos)){return true;}  
+
+            return false;         
         }
 
 
@@ -404,7 +409,7 @@ class Map{
                     mapObj = get_map_object(renderedMap, probe_pos);
                     is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
 
-                    return is_dead;
+                    if(is_dead) return true;
 
                 }
                 else if((mapObj_adj1 == 'x' && mapObj_adj2 == 'x') ||
@@ -431,9 +436,12 @@ class Map{
                     mapObj = get_map_object(renderedMap, probe_pos);
                     is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
 
-                    return is_dead;
-                }                    
-            }            
+                    if(is_dead) return true;
+                }              
+            }     
+
+            return false;
+
         }
         
 
@@ -686,7 +694,7 @@ class Solver{
         queue<State> nextStateQueue;
 
         unordered_map<bitset<64>, Pos> vstdStTbl;
-        unordered_map<bitset<64>, struct PosNode*> vstdClidStTbl;
+        unordered_map<bitset<64>, PosNode*> vstdClidStTbl;
 
         State state, nextState;
         list<Action> action_list;
@@ -702,12 +710,12 @@ class Solver{
             add_visited_state(&vstdStTbl, &vstdClidStTbl, state);
 
 
-            get_available_actions(state, &action_list);
+            map->get_available_actions(state, &action_list);
 
             while(!action_list.empty()){
                 
                 map->act(state, action_list.front(), &nextState);
-                action_list.pop_front()
+                action_list.pop_front();
                 
                 if(map->is_done(nextState)){done = true; break;} 
 
@@ -720,21 +728,21 @@ class Solver{
 
 
     void add_visited_state(unordered_map<bitset<64>, Pos> *vstdStTbl, 
-                    unordered_map<bitset<64>, struct PosNode*> *vstdClidStTbl, State state){
+                    unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, State state){
         
         Pos pos;
         pos.row = state.row;
         pos.col = state.col;
 
-        if(!is_in_vstdStTbl(&vstdStTbl, state.boxPos)){ // not inside.
+        if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){ // not inside.
             (*vstdStTbl)[state.boxPos] = pos;
         }else{
-            insert_PosNode(&vstdClidStTbl, state);
+            insert_PosNode(vstdClidStTbl, state);
         }
     }
 
 
-    void insert_PosNode(unordered_map<bitset<64>, struct PosNode*> *vstdClidStTbl, State state){
+    void insert_PosNode(unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, State state){
         
         Pos pos;
         pos.row = state.row;
@@ -743,7 +751,7 @@ class Solver{
         PosNode *cur = new PosNode;
         cur->pos = pos;
 
-        if(!is_in_vstdClidStTbl(&vstdClidStTbl, state.boxPos)){
+        if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){
             cur->next = NULL;
         }
         else{
@@ -755,10 +763,10 @@ class Solver{
 
 
     bool is_state_visited(unordered_map<bitset<64>, Pos> *vstdStTbl, 
-                    unordered_map<bitset<64>, struct PosNode*> *vstdClidStTbl, State state){
+                    unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, State state){
 
         // key not found -> haven't been visited.
-        if(!is_in_vstdStTbl(&vstdStTbl, state.boxPos)){return false;}
+        if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
 
 
         Pos visitedPos = (*vstdStTbl)[state.boxPos];
@@ -771,7 +779,7 @@ class Solver{
         
 
         // key not found -> haven't been visited.
-        if(!is_in_vstdClidStTbl(&vstdClidStTbl, state.boxPos)){return false;}
+        if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){return false;}
 
 
   
@@ -792,7 +800,7 @@ class Solver{
     }
     
 
-    bool is_in_vstdClidStTbl(unordered_map<bitset<64>, struct PosNode*> *vstdClidStTbl, 
+    bool is_in_vstdClidStTbl(unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, 
                                                                             bitset<64> boxPos){
         return !(vstdClidStTbl->find(boxPos) == vstdClidStTbl->end());
     }
@@ -803,10 +811,7 @@ class Solver{
     }
 
 
-    struct PosNode{
-        Pos pos;
-        PosNode *next;
-    };
+
 
     Map* map;
 };

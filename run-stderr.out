@@ -1,1 +1,23 @@
-run.sh: line 10: ./hw1: No such file or directory
+argv[1]: ./samples/01.txt
+#########
+#  xox..#
+#   #####
+#########
+
+fileLen: 40
+fileLineNum: 4
+spaceNum: 10
+
+[print_map()]:
+
+#########
+#     ..#
+#   #####
+#########
+
+[print_map_state()]:
+
+#########
+#  xox..#
+#   #####
+#########[act()] mapObj != 'x' 
