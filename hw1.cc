@@ -50,6 +50,20 @@ struct PosNode{
 
 
 
+void print_action_list(list<Action> action_list){
+    Action action;
+    while(!action_list.empty()){
+
+        action = action_list.front();
+        action_list.pop_front();
+
+        fprintf(stderr, "action.row: %d\n", (int)action.row); 
+        fprintf(stderr, "action.col: %d\n", (int)action.col); 
+        fprintf(stderr, "action.dir: %d\n", (int)action.dir); 
+    }
+}
+
+
 
 class Map{
     public:
@@ -59,74 +73,111 @@ class Map{
             read_map(filename);
         }
 
-        void print_map(){
+
+        void print_map(char* map){
             
-            fprintf(stderr, "\n[print_map()]:\n\n");
+            // fprintf(stderr, "\n[print_map()]:\n\n");
 
             for (int i=0; i<fileLen; i++){
                 fprintf(stderr, "%c", map[i]);
             }
+
+            fprintf(stderr, "\n\n");
         }    
 
+        void print_state(State state){
 
-        void print_map_state(){
-            
-            fprintf(stderr, "\n[print_map_state()]:\n\n");
+            char* renderedMap = new char[fileLen];
+            render_boxPos(renderedMap, state.boxPos);
 
-            char ch;
-            int offset = 0;
-            int row = 0, col = 0;
+            Pos pos;
+            char mapObj;
 
-            for (int i=0; i<fileLen-1; i++){
-                ch = map[i];
-                
-                if(ch == '\n'){
-                    row++; col = 0;
-                    // continue;
-                }
-                else{
+            pos.row = state.row;
+            pos.col = state.col;
 
-                
-                    if(ch == ' '){
-                        if(state.boxPos[offset++] == 1){
-                            ch = 'x';
-                        }
-                        else if(row == state.row && col == state.col){
-                            ch = 'o';
-                        }
-                    }
-                    else if(ch == '.'){
-                        if(state.boxPos[offset++] == 1){
-                            ch = 'X';
-                        } 
-                        else if(row == state.row && col == state.col){
-                            ch = 'O';
-                        }                    
-                    }
+            mapObj = get_map_object(renderedMap, pos);
+            if(mapObj == '.') set_map_object(renderedMap, pos, 'O');
+            else if(mapObj == ' ') set_map_object(renderedMap, pos, 'o');
 
-                    col++;
-                
-                }
-
-                fprintf(stderr, "%c", ch);
-
+            for (int i=0; i<fileLen; i++){
+                fprintf(stderr, "%c", renderedMap[i]);
             }
+            fprintf(stderr, "\n\n");
+
+        }
 
 
 
 
-            // fprintf(stderr, "\n\n[test get_map_object()]:\n\n");
+        // void print_map(){
+            
+        //     fprintf(stderr, "\n[print_map()]:\n\n");
 
-            // Pos pos;
-            // char obj;
+        //     for (int i=0; i<fileLen; i++){
+        //         fprintf(stderr, "%c", map[i]);
+        //     }
+        // }    
 
-            // for(int i =0; i<9; i++){
-            //     for(int j =0; j<10; j++){
-            //         pos.row = i; pos.col = j;
-            //         fprintf(stderr, "%c", get_map_object(pos));
-            //     }
-            // }
-        }    
+
+        // void print_map_state(){
+            
+        //     fprintf(stderr, "\n[print_map_state()]:\n\n");
+
+        //     char ch;
+        //     int offset = 0;
+        //     int row = 0, col = 0;
+
+        //     for (int i=0; i<fileLen-1; i++){
+        //         ch = map[i];
+                
+        //         if(ch == '\n'){
+        //             row++; col = 0;
+        //             // continue;
+        //         }
+        //         else{
+
+                
+        //             if(ch == ' '){
+        //                 if(state.boxPos[offset++] == 1){
+        //                     ch = 'x';
+        //                 }
+        //                 else if(row == state.row && col == state.col){
+        //                     ch = 'o';
+        //                 }
+        //             }
+        //             else if(ch == '.'){
+        //                 if(state.boxPos[offset++] == 1){
+        //                     ch = 'X';
+        //                 } 
+        //                 else if(row == state.row && col == state.col){
+        //                     ch = 'O';
+        //                 }                    
+        //             }
+
+        //             col++;
+                
+        //         }
+
+        //         fprintf(stderr, "%c", ch);
+
+        //     }
+
+        //     fprintf(stderr, "%c\n");
+
+
+        //     // fprintf(stderr, "\n\n[test get_map_object()]:\n\n");
+
+        //     // Pos pos;
+        //     // char obj;
+
+        //     // for(int i =0; i<9; i++){
+        //     //     for(int j =0; j<10; j++){
+        //     //         pos.row = i; pos.col = j;
+        //     //         fprintf(stderr, "%c", get_map_object(pos));
+        //     //     }
+        //     // }
+        // }    
 
 
         void _get_file_info(char* filename){
@@ -282,13 +333,17 @@ class Map{
             
         }
 
-
+        
 
         void get_available_actions(State state, list<Action>* action_list){
             // Do BFS to find what `action`'s are available given `state`.
-
+    
             char* renderedMap = new char[fileLen];
             render_boxPos(renderedMap, state.boxPos);
+
+            fprintf(stderr, "\n[get_available_actions()] print_map:\n\n"); 
+            print_state(state);
+
 
             queue<Pos> nextPosQueue;
             unordered_map<poskey_t, bool> vstdPosTbl;
@@ -299,12 +354,23 @@ class Map{
             nextPosQueue.push(curPos);
 
             while(!nextPosQueue.empty()){
+                
+                fprintf(stderr, "\n[get_available_actions()]: in while loop.\n\n");
+
                 curPos = nextPosQueue.front();
                 nextPosQueue.pop();
                 vstdPosTbl[pos2key(curPos)] = true;
 
+
+
+
                 add_local_action(renderedMap, curPos, action_list);
+
+                fprintf(stderr, "\n[get_available_actions()] print_action_list:\n\n"); 
+                print_action_list(*action_list);
                 
+
+
                 for(int dir=0; dir<=3; dir++){
                     add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
                 }
@@ -324,6 +390,8 @@ class Map{
                 move(curPos, (Dir)dir, &probe_pos);
                 mapObj = get_map_object(renderedMap, probe_pos); 
 
+                fprintf(stderr, "\n[add_local_action()] mapObj: %c\n\n", mapObj);
+
                 if(mapObj == 'x' || mapObj == 'X'){
                 
                     move(probe_pos, (Dir)dir, &probe_pos);
@@ -333,7 +401,13 @@ class Map{
                         action.dir = (Dir)dir;
                         action.row = curPos.row;
                         action.col = curPos.col;
-                        if(!is_dead_action(renderedMap, action)) action_list->push_back(action);
+                        if(!is_dead_action(renderedMap, action)){
+                            fprintf(stderr, "\n[add_local_action()] is not dead action.\n\n"); 
+                            action_list->push_back(action);
+                        }
+                        else{
+                            fprintf(stderr, "\n[add_local_action()] is dead action.\n\n"); 
+                        }
                     }
                 }
             }
@@ -347,8 +421,14 @@ class Map{
             move(curPos, action.dir, &o_pos);
             move(o_pos, action.dir, &x_pos);
 
-            if(is_dead_corner(renderedMap, x_pos)){return true;}
-            else if(is_pushPos_unreachable(o_pos, x_pos)){return true;}  
+            if(is_dead_corner(renderedMap, x_pos)){
+                fprintf(stderr, "\n[is_dead_action()] is_dead_corner.\n\n");
+                return true;
+            }
+            else if(is_pushPos_unreachable(o_pos, x_pos)){
+                fprintf(stderr, "\n[is_dead_action()] is_pushPos_unreachable.\n\n");
+                return true;
+            }  
 
             return false;         
         }
@@ -366,7 +446,11 @@ class Map{
             mapObj_x_pos = get_map_object(renderedMap, x_pos);
 
             for(int dir=0; dir<=3; dir++){
-                
+
+                fprintf(stderr, "\n[is_dead_action()] dir: %d.\n\n", dir);
+
+
+
                 dir1 = dir; 
                 dir2 = (dir1 + 1)%4;
 
@@ -378,6 +462,7 @@ class Map{
 
 
                 if(mapObj_adj1 == '#' && mapObj_adj2 == '#' && mapObj_x_pos != '.'){ 
+                    fprintf(stderr, "\n[is_dead_action()] 0\n\n");
                     return true;
                 }
                 else if(mapObj_adj1 == '#' && mapObj_adj2 == 'x' ||
@@ -393,7 +478,10 @@ class Map{
                     mapObj = get_map_object(renderedMap, probe_pos);
                     is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
 
-                    if(is_dead) return true;
+                    if(is_dead){
+                        fprintf(stderr, "\n[is_dead_action()] 1\n\n");
+                        return true;
+                    } 
 
                 }                   
                 else if(mapObj_adj1 == 'x' && mapObj_adj2 == '#' ||
@@ -409,8 +497,10 @@ class Map{
                     mapObj = get_map_object(renderedMap, probe_pos);
                     is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
 
-                    if(is_dead) return true;
-
+                    if(is_dead){
+                        fprintf(stderr, "\n[is_dead_action()] 2\n\n");
+                        return true;
+                    } 
                 }
                 else if((mapObj_adj1 == 'x' && mapObj_adj2 == 'x') ||
                         (mapObj_adj1 == 'x' && mapObj_adj2 == 'X') ||
@@ -436,7 +526,10 @@ class Map{
                     mapObj = get_map_object(renderedMap, probe_pos);
                     is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
 
-                    if(is_dead) return true;
+                    if(is_dead){
+                        fprintf(stderr, "\n[is_dead_action()] 3\n\n");
+                        return true;
+                    }                     
                 }              
             }     
 
@@ -502,6 +595,8 @@ class Map{
                     unordered_map<poskey_t, bool> *vstdPosTbl, queue<Pos> *nextPosQueue){
             // check whether the position in `dir` is empty space (' ' or '.').
                 // If so and if not already explored, add to 'nextPosQueue'.
+
+            fprintf(stderr, "\n[add_unvisited_nextPos()]:\n\n"); 
 
             Pos nextPos;
             char mapObj;
@@ -570,11 +665,18 @@ class Map{
             char* renderedMap = new char[fileLen];
             render_boxPos(renderedMap, cur_state.boxPos);  
 
+            fprintf(stderr, "\n[act()]: before action\n\n");
+            // print_map(renderedMap);
+            print_state(cur_state);
+
             char mapObj;
             Pos o_pos, x_pos;
             
-            // replace 'x' in old position by 'o'.
+            o_pos.row = action.row;
+            o_pos.col = action.col;
             move(o_pos, action.dir, &x_pos);
+
+            // replace 'x' in old position by 'o'.
             mapObj = get_map_object(renderedMap, x_pos); 
             if(mapObj == 'x') set_map_object(renderedMap, x_pos, 'o');
             else if(mapObj == 'X') set_map_object(renderedMap, x_pos, 'O');
@@ -587,8 +689,24 @@ class Map{
             else if(mapObj == '.') set_map_object(renderedMap, x_pos, 'X');
             else {fprintf(stderr, "[act()] `x` new position not a space. \n"); exit(-1);}
 
+            // fprintf(stderr, "\n[act()]: after action\n\n");
+            // print_map(renderedMap);
+             
 
             map2state(renderedMap, next_state);
+
+            fprintf(stderr, "\n[act()]: after action\n\n");
+            print_state(*next_state);
+
+
+
+            // render_boxPos(renderedMap, next_state->boxPos);
+            // o_pos.row = next_state->row;
+            // o_pos.col = next_state->col;
+            // set_map_object(renderedMap, o_pos, 'o');
+
+            // fprintf(stderr, "\n[act()]: re-render \n\n");
+            // print_map(renderedMap);
         }
 
 
@@ -631,6 +749,8 @@ class Map{
 
 
         bool is_reachable(State state, Pos pos1, Pos pos2){
+            
+            fprintf(stderr, "\n[is_reachable()]:\n\n"); 
 
             char* renderedMap = new char[fileLen];
             render_boxPos(renderedMap, state.boxPos);  
@@ -681,15 +801,17 @@ class Solver{
 
     Solver(char* filename){
         map = new Map(filename);
-        map->print_map();
-        map->print_map_state(); 
+        // map->print_map();
+        // map->print_map_state(); 
 
-        
+        map->print_map(map->map);
         explore();
     }
 
 
     void explore(){
+        
+        fprintf(stderr, "\n[explore()]:\n\n"); 
 
         queue<State> nextStateQueue;
 
@@ -703,28 +825,39 @@ class Solver{
         
         bool done = false;
 
-        while (!done) {
+        while (!done && !nextStateQueue.empty()) {
+        
             state = nextStateQueue.front();
             nextStateQueue.pop();
 
             add_visited_state(&vstdStTbl, &vstdClidStTbl, state);
-
-
-            map->get_available_actions(state, &action_list);
+       
+            map->get_available_actions(state, &action_list); // problem?
+    
+            fprintf(stderr, "\n[explore()] print action list:\n\n");
+            print_action_list(action_list);
 
             while(!action_list.empty()){
-                
+             
                 map->act(state, action_list.front(), &nextState);
                 action_list.pop_front();
                 
-                if(map->is_done(nextState)){done = true; break;} 
+                if(map->is_done(nextState)){
+                    fprintf(stderr, "\n[explore()]: done!\n\n"); 
+                    done = true; break;
+                } 
 
-                if(!is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState)){
+                if(!is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState)){ 
+                    fprintf(stderr, "\n[explore()] state not visited:\n\n");
                     nextStateQueue.push(nextState);
                 }
+                
             }
         }
     }
+
+
+
 
 
     void add_visited_state(unordered_map<bitset<64>, Pos> *vstdStTbl, 
@@ -764,6 +897,9 @@ class Solver{
 
     bool is_state_visited(unordered_map<bitset<64>, Pos> *vstdStTbl, 
                     unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, State state){
+
+
+        fprintf(stderr, "\n[is_state_visited()]:\n\n"); 
 
         // key not found -> haven't been visited.
         if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
@@ -825,6 +961,7 @@ int main(int argc, char** argv) {
     fprintf(stderr, "argv[1]: %s\n", argv[1]);
 
     Solver solver(argv[1]);
+    
 
     return 0;
 }
