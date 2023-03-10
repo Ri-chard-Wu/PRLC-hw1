@@ -253,11 +253,21 @@ class Map{
             _read_map(filename);
             _read_state(filename);
             _get_row_ends();
-
         }
 
         bool is_done(State state){
+            char* renderedMap = new char[fileLen];
+            render_boxPos(renderedMap, state.boxPos);
+            char ch;
 
+            for (int i=0; i<fileLen-1; i++){
+                ch = renderedMap[i];
+                if(ch == 'x') return false;
+                if(ch == '.') return false;
+                if(ch == 'O') return false;
+            }
+            return true;
+            
         }
 
 
@@ -311,13 +321,13 @@ class Map{
                         action.dir = (Dir)dir;
                         action.row = curPos.row;
                         action.col = curPos.col;
-                        if(!willbe_dead_state(renderedMap, action)) action_list->push_back(action);
+                        if(!is_dead_action(renderedMap, action)) action_list->push_back(action);
                     }
                 }
             }
         }
 
-        bool willbe_dead_state(char* renderedMap, Action action){
+        bool is_dead_action(char* renderedMap, Action action){
 
             Pos curPos{.row{action.row}, .col{action.col}};
             Pos o_pos, x_pos;
@@ -466,9 +476,6 @@ class Map{
         }
 
 
-
-
-
         bool is_pos_visited(unordered_map<Pos, bool> *visitedPos, Pos pos){
             return visitedPos.find(pos) == visitedPos.end();
         }
@@ -491,6 +498,7 @@ class Map{
                 }
             }
         }
+
 
         void move(Pos curPos, Dir dir, Pos *nextPos){
 
@@ -547,14 +555,6 @@ class Map{
 
             char mapObj;
             Pos o_pos, x_pos;
-
-            // delete 'o' in old position.
-            o_pos.row = cur_state.row;
-            o_pos.col = cur_state.col;
-            mapObj = get_map_object(renderedMap, o_pos); 
-            if(mapObj == 'o') set_map_object(renderedMap, o_pos, ' ');
-            else if(mapObj == 'O') set_map_object(renderedMap, o_pos, '.');
-            else {fprintf(stderr, "[act()] mapObj != 'o' \n"); exit(-1);}
             
             // replace 'x' in old position by 'o'.
             move(o_pos, action.dir, &x_pos);
@@ -613,8 +613,29 @@ class Map{
         }
 
 
-        void is_reachable(State state, Pos curPos, Pos visitedPos){
+        bool is_reachable(State state, Pos pos1, Pos pos2){
 
+            char* renderedMap = new char[fileLen];
+            render_boxPos(renderedMap, state.boxPos);  
+            char mapObj;
+
+            queue<Pos> nextPosQueue;
+            unordered_map<Pos, bool> visitedPos;
+            
+            Pos probe_pos, curPos = pos1;
+            nextPosQueue.push(curPos);
+                            
+            while(!nextPosQueue.empty()){
+                curPos = nextPosQueue.front();
+                nextPosQueue.pop();
+                visitedPos[curPos] = true;
+
+                for(int dir=0; dir<=3; dir++){
+                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &visitedPos, &nextPosQueue);
+                }
+            }
+
+            return is_pos_visited(&visitedPos, pos2);
         }
 
 
@@ -646,7 +667,8 @@ class Solver{
         map->print_map();
         map->print_map_state(); 
 
-        nextStateQueue.push(map.get_state());
+        
+        explore();
     }
 
 
@@ -659,7 +681,8 @@ class Solver{
 
         State state, nextState;
         list<Action> action_list;
-        // Pos pos;
+        
+        nextStateQueue.push(map.get_state());
         
         bool done = false;
 
@@ -770,11 +793,6 @@ class Solver{
         return !(visitedState->find(boxPos) == visitedState->end());
     }
 
-
-    // struct StateKey{
-    //     bitset<64> boxPos;
-    //     unsigned char idx;
-    // }
 
     struct PosNode{
         Pos pos;
