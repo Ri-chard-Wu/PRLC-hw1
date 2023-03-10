@@ -101,17 +101,17 @@ class Map{
 
 
 
-            fprintf(stderr, "\n\n[test get_map_object()]:\n\n");
+            // fprintf(stderr, "\n\n[test get_map_object()]:\n\n");
 
-            Pos pos;
-            char obj;
+            // Pos pos;
+            // char obj;
 
-            for(int i =0; i<9; i++){
-                for(int j =0; j<10; j++){
-                    pos.row = i; pos.col = j;
-                    fprintf(stderr, "%c", get_map_object(pos));
-                }
-            }
+            // for(int i =0; i<9; i++){
+            //     for(int j =0; j<10; j++){
+            //         pos.row = i; pos.col = j;
+            //         fprintf(stderr, "%c", get_map_object(pos));
+            //     }
+            // }
         }    
 
 
@@ -153,7 +153,7 @@ class Map{
             char ch;
 
             map = new char[fileLen];
-            renderedMap = new char[fileLen];
+            // renderedMap = new char[fileLen];
             int offset = 0;
 
  
@@ -258,13 +258,12 @@ class Map{
 
         }
 
-        bool is_dead_state(State state){
 
-        }
 
         void get_available_actions(State state, list<Action>* action_list){
-            
-            render_map(state);
+
+            char* renderedMap = new char[fileLen];
+            render_boxPos(renderedMap, state.boxPos);
 
             queue<Pos> nextPosQueue;
             unordered_map<Pos, bool> vistedPos;
@@ -277,56 +276,111 @@ class Map{
             while(!nextPosQueue.empty()){
                 curPos = nextPosQueue.front();
                 nextPosQueue.pop();
-
                 vistedPos[curPos] = true;
 
-                if(check_action(state, curPos, &action)) action_list->push_back(action);
+                check_action(renderedMap, curPos, &action_list);
 
-
-                if(check_move(curPos, up, &nextPos) & !is_pos_visited(&vistedPos, nextPos)) 
-                    nextPosQueue.push(nextPos);
-                if(check_move(curPos, right, &nextPos) & !is_pos_visited(&vistedPos, nextPos)) 
-                    nextPosQueue.push(nextPos);
-                if(check_move(curPos, left, &nextPos) & !is_pos_visited(&vistedPos, nextPos)) 
-                    nextPosQueue.push(nextPos);
-                if(check_move(curPos, down, &nextPos) & !is_pos_visited(&vistedPos, nextPos)) 
-                    nextPosQueue.push(nextPos);
+                check_move(renderedMap, curPos, up, &vistedPos, &nextPosQueue);
+                check_move(renderedMap, curPos, right, &vistedPos, &nextPosQueue);
+                check_move(renderedMap, curPos, left, &vistedPos, &nextPosQueue);
+                check_move(renderedMap, curPos, down, &vistedPos, &nextPosQueue);
             }
 
         }
+
+
+        bool willbe_dead_state(State state, Action action){
+
+            // Fast path
+            // - 4 box form square, not all of them are on '.'
+            // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.'
+
+
+
+            // Slow path
+            // 1. find all available action on a box
+            // 2. get pos needed to do the action
+            // 3. use BFS on `map` to see whether those pos's are reachable.
+            // 4. if all of pos are unreachable and 'x' is not on '.', return true.
+            queue<Pos> nextPosQueue;
+            unordered_map<Pos, bool> vistedPos;
+
+            Pos nextPos;
+            Pos curPos{.row{action.row}, .col{action.col}};
+
+            move(&curPos, action.dir);
+            Pos o_pos{.row{curPos.row}, .col{curPos.col}};
+
+            move(&curPos, action.dir);
+            Pos x_pos{.row{curPos.row}, .col{curPos.col}};
+
+            curPos = o_pos;
+            nextPosQueue.push(curPos);
+
+            char* renderedMap = new char[fileLen];
+            reset_renderedMap(renderedMap);
+
+            while(!nextPosQueue.empty()){
+                curPos = nextPosQueue.front();
+                nextPosQueue.pop();
+                vistedPos[curPos] = true;
+
+                nextPos = curPos;
+                move(&nextPos, up);
+            }
+        }
+
+
+        bool check_action(char* renderedMap, Pos curPos, list<Action>* action_list){
+            Pos probe_pos;
+            char mapObj;
+            Action action;
+
+            probe_pos = curPos;
+            probe_pos.row -= 1;
+            mapObj = get_map_object(renderedMap, probe_pos); 
+            if(mapObj == 'x' || mapObj == 'X'){
+                if(probe_pos.row > 1){
+                    probe_pos.row -= 1;
+                    mapObj = get_map_object(renderedMap, probe_pos);                     
+                    if(mapObj == ' ' || mapObj == '.'){
+                        action.dir = up;
+                        action.row = curPos.row;
+                        action.col = curPos.col;
+                        if(!willbe_dead_state(action)) action_list->push_back(action);
+                    }
+                }
+            }
+        }
+
 
         bool is_pos_visited(unordered_map<Pos, bool> *vistedPos, Pos pos){
             return vistedPos.find(pos) == vistedPos.end();
         }
 
-        bool check_action(State state, Pos curPos, Action* action){
-            Pos probe_pos;
+
+        bool check_move(char *renderedMap, Pos curPos, Direction dir, 
+                    unordered_map<Pos, bool> *vistedPos, queue<Pos> *nextPosQueue){
+            
+            Pos nextPos = curPos;
             char mapObj;
 
-            probe_pos = curPos;
-            probe_pos.row -= 1;
-            mapObj = get_renderedMap_object(probe_pos); 
-            if(mapObj == 'x' || mapObj == 'X'){
-                
+            move(&nextPos, dir);
+
+            mapObj = get_map_object(renderedMap, nextPos); 
+            if(mapObj == '.' || mapObj == ' '){
+                if(!is_pos_visited(vistedPos, nextPos)){
+                    nextPosQueue->push(nextPos);
+                }
             }
-
         }
 
-        bool check_move(Pos curPos, Direction dir, Pos* nextPos){
-
-            nextPos->row = curPos.row;
-            nextPos->col = curPos.col;
-            char mapObj;
-
-            if(dir == up) nextPos->row -= 1;
-            else if(dir == right) nextPos->col += 1;
-            else if(dir == down) nextPos->row += 1;
-            else if(dir == left) nextPos->col -= 1;
-
-            mapObj = get_renderedMap_object(nextPos); 
-            if(mapObj == '.' || mapObj == ' ') return true;         
+        void move(Pos *pos, Direction dir){
+            if(dir == up) pos->row -= 1;
+            else if(dir == right) pos->col += 1;
+            else if(dir == down) pos->row += 1;
+            else if(dir == left) pos->col -= 1;
         }
-
 
         void act(State* state, Action action){
 
@@ -336,11 +390,11 @@ class Map{
             return state;
         }
 
-        char get_renderedMap_object(Pos pos){
+        char get_map_object(char *renderedMap, Pos pos){
             return renderedMap[rowBegins[pos.row] + pos.col];
         }
 
-        void render_map(State state){
+        void render_boxPos(char *renderedMap, bitset<64> boxPos){
 
             char ch;
             int offset = 0;
@@ -350,18 +404,24 @@ class Map{
                 ch = map[i];
                 
                 if(ch == ' '){
-                    if(state.boxPos[offset++] == 1) ch = 'x';
+                    if(boxPos[offset++] == 1) ch = 'x';
                 }
                 else if(ch == '.'){
-                    if(state.boxPos[offset++] == 1) ch = 'X';
+                    if(boxPos[offset++] == 1) ch = 'X';
                 }
                 
                 renderedMap[i] = ch;
             }
         }
 
+        void reset_renderedMap(char* renderedMap){
+            for (int i=0; i<fileLen-1; i++){
+                renderedMap[i] = map[i];
+            }
+        }
+
         char *map;
-        char *renderedMap;
+        // char *renderedMap;
 
         int *rowEnds;
         int *rowBegins;

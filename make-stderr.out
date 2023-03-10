@@ -1,0 +1,266 @@
+hw1.cc: In member function ‘void Map::print_map_state()’:
+hw1.cc:112:43: error: ‘get_map_object’ was not declared in this scope
+  112 |                     fprintf(stderr, "%c", get_map_object(pos));
+      |                                           ^~~~~~~~~~~~~~
+hw1.cc: In member function ‘bool Map::is_done(State)’:
+hw1.cc:259:9: warning: no return statement in function returning non-void [-Wreturn-type]
+  259 |         }
+      |         ^
+hw1.cc: In member function ‘bool Map::is_dead_state(State)’:
+hw1.cc:263:9: warning: no return statement in function returning non-void [-Wreturn-type]
+  263 |         }
+      |         ^
+hw1.cc: In member function ‘void Map::get_available_actions(State, std::__cxx11::list<Action>*)’:
+hw1.cc:270:38: error: use of deleted function ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::unordered_map() [with _Key = Pos; _Tp = bool; _Hash = std::hash<Pos>; _Pred = std::equal_to<Pos>; _Alloc = std::allocator<std::pair<const Pos, bool> >]’
+  270 |             unordered_map<Pos, bool> vistedPos;
+      |                                      ^~~~~~~~~
+In file included from /usr/include/c++/12.2.1/unordered_map:47,
+                 from hw1.cc:12:
+/usr/include/c++/12.2.1/bits/unordered_map.h:141:7: note: ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::unordered_map() [with _Key = Pos; _Tp = bool; _Hash = std::hash<Pos>; _Pred = std::equal_to<Pos>; _Alloc = std::allocator<std::pair<const Pos, bool> >]’ is implicitly deleted because the default definition would be ill-formed:
+  141 |       unordered_map() = default;
+      |       ^~~~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/unordered_map.h:141:7: error: use of deleted function ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::_Hashtable() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’
+In file included from /usr/include/c++/12.2.1/unordered_map:46:
+/usr/include/c++/12.2.1/bits/hashtable.h:531:7: note: ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::_Hashtable() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’ is implicitly deleted because the default definition would be ill-formed:
+  531 |       _Hashtable() = default;
+      |       ^~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable.h:531:7: error: use of deleted function ‘std::__detail::_Hashtable_base<_Key, _Value, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _Traits>::_Hashtable_base() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’
+In file included from /usr/include/c++/12.2.1/bits/hashtable.h:35:
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1674:7: note: ‘std::__detail::_Hashtable_base<_Key, _Value, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _Traits>::_Hashtable_base() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’ is implicitly deleted because the default definition would be ill-formed:
+ 1674 |       _Hashtable_base() = default;
+      |       ^~~~~~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1674:7: error: use of deleted function ‘std::__detail::_Hash_code_base<_Key, _Value, _ExtractKey, _Hash, _RangeHash, _Unused, __cache_hash_code>::_Hash_code_base() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; bool __cache_hash_code = true]’
+/usr/include/c++/12.2.1/bits/hashtable_policy.h: In instantiation of ‘std::__detail::_Hashtable_ebo_helper<_Nm, _Tp, true>::_Hashtable_ebo_helper() [with int _Nm = 1; _Tp = std::hash<Pos>]’:
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1261:7:   required from here
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1178:49: error: use of deleted function ‘std::hash<Pos>::hash()’
+ 1178 |       _Hashtable_ebo_helper() noexcept(noexcept(_Tp())) : _Tp() { }
+      |                                                 ^~~~~
+In file included from /usr/include/c++/12.2.1/string_view:43,
+                 from /usr/include/c++/12.2.1/bits/basic_string.h:47,
+                 from /usr/include/c++/12.2.1/string:53,
+                 from /usr/include/c++/12.2.1/bits/locale_classes.h:40,
+                 from /usr/include/c++/12.2.1/bits/ios_base.h:41,
+                 from /usr/include/c++/12.2.1/ios:42,
+                 from /usr/include/c++/12.2.1/ostream:38,
+                 from /usr/include/c++/12.2.1/iostream:39,
+                 from hw1.cc:5:
+/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: note: ‘std::hash<Pos>::hash()’ is implicitly deleted because the default definition would be ill-formed:
+  102 |     struct hash : __hash_enum<_Tp>
+      |            ^~~~
+/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: error: no matching function for call to ‘std::__hash_enum<Pos, false>::__hash_enum()’
+/usr/include/c++/12.2.1/bits/functional_hash.h:83:7: note: candidate: ‘std::__hash_enum<_Tp, <anonymous> >::__hash_enum(std::__hash_enum<_Tp, <anonymous> >&&) [with _Tp = Pos; bool <anonymous> = false]’
+   83 |       __hash_enum(__hash_enum&&);
+      |       ^~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/functional_hash.h:83:7: note:   candidate expects 1 argument, 0 provided
+/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: error: ‘std::__hash_enum<_Tp, <anonymous> >::~__hash_enum() [with _Tp = Pos; bool <anonymous> = false]’ is private within this context
+  102 |     struct hash : __hash_enum<_Tp>
+      |            ^~~~
+/usr/include/c++/12.2.1/bits/functional_hash.h:84:7: note: declared private here
+   84 |       ~__hash_enum();
+      |       ^
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1261:7: note: ‘std::__detail::_Hash_code_base<_Key, _Value, _ExtractKey, _Hash, _RangeHash, _Unused, __cache_hash_code>::_Hash_code_base() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; bool __cache_hash_code = true]’ is implicitly deleted because the default definition would be ill-formed:
+ 1261 |       _Hash_code_base() = default;
+      |       ^~~~~~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1261:7: error: use of deleted function ‘std::__detail::_Hashtable_ebo_helper<1, std::hash<Pos>, true>::~_Hashtable_ebo_helper()’
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1175:12: note: ‘std::__detail::_Hashtable_ebo_helper<1, std::hash<Pos>, true>::~_Hashtable_ebo_helper()’ is implicitly deleted because the default definition would be ill-formed:
+ 1175 |     struct _Hashtable_ebo_helper<_Nm, _Tp, true>
+      |            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1175:12: error: use of deleted function ‘std::hash<Pos>::~hash()’
+/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: note: ‘std::hash<Pos>::~hash()’ is implicitly deleted because the default definition would be ill-formed:
+  102 |     struct hash : __hash_enum<_Tp>
+      |            ^~~~
+/usr/include/c++/12.2.1/bits/functional_hash.h:102:12: error: ‘std::__hash_enum<_Tp, <anonymous> >::~__hash_enum() [with _Tp = Pos; bool <anonymous> = false]’ is private within this context
+/usr/include/c++/12.2.1/bits/functional_hash.h:84:7: note: declared private here
+   84 |       ~__hash_enum();
+      |       ^
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1674:7: error: use of deleted function ‘std::__detail::_Hash_code_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, true>::~_Hash_code_base()’
+ 1674 |       _Hashtable_base() = default;
+      |       ^~~~~~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1239:12: note: ‘std::__detail::_Hash_code_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, true>::~_Hash_code_base()’ is implicitly deleted because the default definition would be ill-formed:
+ 1239 |     struct _Hash_code_base
+      |            ^~~~~~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1239:12: error: use of deleted function ‘std::__detail::_Hashtable_ebo_helper<1, std::hash<Pos>, true>::~_Hashtable_ebo_helper()’
+/usr/include/c++/12.2.1/bits/hashtable.h:531:7: error: use of deleted function ‘std::__detail::_Hashtable_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::equal_to<Pos>, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Hashtable_traits<true, false, true> >::~_Hashtable_base()’
+  531 |       _Hashtable() = default;
+      |       ^~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1631:12: note: ‘std::__detail::_Hashtable_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::equal_to<Pos>, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Hashtable_traits<true, false, true> >::~_Hashtable_base()’ is implicitly deleted because the default definition would be ill-formed:
+ 1631 |     struct _Hashtable_base
+      |            ^~~~~~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1631:12: error: use of deleted function ‘std::__detail::_Hash_code_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, true>::~_Hash_code_base()’
+/usr/include/c++/12.2.1/bits/hashtable.h:531:7: error: use of deleted function ‘constexpr std::_Enable_default_constructor<false, _Tag>::_Enable_default_constructor() [with _Tag = std::__detail::_Hash_node_base]’
+  531 |       _Hashtable() = default;
+      |       ^~~~~~~~~~
+In file included from /usr/include/c++/12.2.1/bits/hashtable.h:36:
+/usr/include/c++/12.2.1/bits/enable_special_members.h:113:15: note: declared here
+  113 |     constexpr _Enable_default_constructor() noexcept = delete;
+      |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+hw1.cc:288:39: error: reference to ‘right’ is ambiguous
+  288 |                 if(check_move(curPos, right, &nextPos) & !is_pos_visited(&vistedPos, nextPos))
+      |                                       ^~~~~
+/usr/include/c++/12.2.1/bits/ios_base.h:1046:3: note: candidates are: ‘std::ios_base& std::right(ios_base&)’
+ 1046 |   right(ios_base& __base)
+      |   ^~~~~
+hw1.cc:29:5: note:                 ‘Direction right’
+   29 |     right,
+      |     ^~~~~
+hw1.cc:290:39: error: reference to ‘left’ is ambiguous
+  290 |                 if(check_move(curPos, left, &nextPos) & !is_pos_visited(&vistedPos, nextPos))
+      |                                       ^~~~
+/usr/include/c++/12.2.1/bits/ios_base.h:1038:3: note: candidates are: ‘std::ios_base& std::left(ios_base&)’
+ 1038 |   left(ios_base& __base)
+      |   ^~~~
+hw1.cc:30:5: note:                 ‘Direction left’
+   30 |     left,
+      |     ^~~~
+hw1.cc: In member function ‘bool Map::is_pos_visited(std::unordered_map<Pos, bool>*, Pos)’:
+hw1.cc:299:30: error: request for member ‘find’ in ‘vistedPos’, which is of pointer type ‘std::unordered_map<Pos, bool>*’ (maybe you meant to use ‘->’ ?)
+  299 |             return vistedPos.find(pos) == vistedPos.end();
+      |                              ^~~~
+hw1.cc:299:53: error: request for member ‘end’ in ‘vistedPos’, which is of pointer type ‘std::unordered_map<Pos, bool>*’ (maybe you meant to use ‘->’ ?)
+  299 |             return vistedPos.find(pos) == vistedPos.end();
+      |                                                     ^~~
+hw1.cc: In member function ‘bool Map::check_action(State, Pos, Action*)’:
+hw1.cc:313:9: warning: no return statement in function returning non-void [-Wreturn-type]
+  313 |         }
+      |         ^
+hw1.cc: In member function ‘bool Map::check_move(Pos, Direction, Pos*)’:
+hw1.cc:322:28: error: reference to ‘right’ is ambiguous
+  322 |             else if(dir == right) nextPos->col += 1;
+      |                            ^~~~~
+/usr/include/c++/12.2.1/bits/ios_base.h:1046:3: note: candidates are: ‘std::ios_base& std::right(ios_base&)’
+ 1046 |   right(ios_base& __base)
+      |   ^~~~~
+hw1.cc:29:5: note:                 ‘Direction right’
+   29 |     right,
+      |     ^~~~~
+hw1.cc:324:28: error: reference to ‘left’ is ambiguous
+  324 |             else if(dir == left) nextPos->col -= 1;
+      |                            ^~~~
+/usr/include/c++/12.2.1/bits/ios_base.h:1038:3: note: candidates are: ‘std::ios_base& std::left(ios_base&)’
+ 1038 |   left(ios_base& __base)
+      |   ^~~~
+hw1.cc:30:5: note:                 ‘Direction left’
+   30 |     left,
+      |     ^~~~
+hw1.cc:326:45: error: cannot convert ‘Pos*’ to ‘Pos’
+  326 |             mapObj = get_renderedMap_object(nextPos);
+      |                                             ^~~~~~~
+      |                                             |
+      |                                             Pos*
+hw1.cc:339:41: note:   initializing argument 1 of ‘char Map::get_renderedMap_object(Pos)’
+  339 |         char get_renderedMap_object(Pos pos){
+      |                                     ~~~~^~~
+hw1.cc: In constructor ‘Solver::Solver(char*)’:
+hw1.cc:385:33: error: request for member ‘get_state’ in ‘((Solver*)this)->Solver::map’, which is of pointer type ‘Map*’ (maybe you meant to use ‘->’ ?)
+  385 |         nextStateQueue.push(map.get_state());
+      |                                 ^~~~~~~~~
+hw1.cc: In member function ‘void Solver::exploreOneStep()’:
+hw1.cc:392:21: error: no match for ‘operator[]’ (operand types are ‘std::unordered_map<std::bitset<8>, bool>’ and ‘std::bitset<64>’)
+  392 |         vistedBoxPos[state.boxPos] = true;
+      |                     ^
+/usr/include/c++/12.2.1/bits/unordered_map.h:979:7: note: candidate: ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::mapped_type& std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::operator[](const key_type&) [with _Key = std::bitset<8>; _Tp = bool; _Hash = std::hash<std::bitset<8> >; _Pred = std::equal_to<std::bitset<8> >; _Alloc = std::allocator<std::pair<const std::bitset<8>, bool> >; mapped_type = bool; key_type = std::bitset<8>]’
+  979 |       operator[](const key_type& __k)
+      |       ^~~~~~~~
+/usr/include/c++/12.2.1/bits/unordered_map.h:979:34: note:   no known conversion for argument 1 from ‘std::bitset<64>’ to ‘const std::unordered_map<std::bitset<8>, bool>::key_type&’ {aka ‘const std::bitset<8>&’}
+  979 |       operator[](const key_type& __k)
+      |                  ~~~~~~~~~~~~~~~~^~~
+/usr/include/c++/12.2.1/bits/unordered_map.h:983:7: note: candidate: ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::mapped_type& std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::operator[](key_type&&) [with _Key = std::bitset<8>; _Tp = bool; _Hash = std::hash<std::bitset<8> >; _Pred = std::equal_to<std::bitset<8> >; _Alloc = std::allocator<std::pair<const std::bitset<8>, bool> >; mapped_type = bool; key_type = std::bitset<8>]’
+  983 |       operator[](key_type&& __k)
+      |       ^~~~~~~~
+/usr/include/c++/12.2.1/bits/unordered_map.h:983:29: note:   no known conversion for argument 1 from ‘std::bitset<64>’ to ‘std::unordered_map<std::bitset<8>, bool>::key_type&&’ {aka ‘std::bitset<8>&&’}
+  983 |       operator[](key_type&& __k)
+      |                  ~~~~~~~~~~~^~~
+hw1.cc:395:9: error: ‘get_available_actions’ was not declared in this scope
+  395 |         get_available_actions(state, &action_list);
+      |         ^~~~~~~~~~~~~~~~~~~~~
+hw1.cc:407:45: error: cannot convert ‘bitset<64>’ to ‘bitset<8>’
+  407 |             if(!is_boxPos_visited(nextState.boxPos)){
+      |                                   ~~~~~~~~~~^~~~~~
+      |                                             |
+      |                                             bitset<64>
+hw1.cc:422:38: note:   initializing argument 1 of ‘bool Solver::is_boxPos_visited(std::bitset<8>)’
+  422 |     bool is_boxPos_visited(bitset<8> boxPos){
+      |                            ~~~~~~~~~~^~~~~~
+/usr/include/c++/12.2.1/bits/hashtable.h: In instantiation of ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::~_Hashtable() [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>]’:
+/usr/include/c++/12.2.1/bits/unordered_map.h:102:11:   required from here
+/usr/include/c++/12.2.1/bits/hashtable.h:1586:5: error: use of deleted function ‘std::__detail::_Hashtable_base<Pos, std::pair<const Pos, bool>, std::__detail::_Select1st, std::equal_to<Pos>, std::hash<Pos>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Hashtable_traits<true, false, true> >::~_Hashtable_base()’
+ 1586 |     }
+      |     ^
+/usr/include/c++/12.2.1/bits/hashtable.h:1578:21: error: static assertion failed: Cache the hash code or qualify your functors involved in hash code and bucket index computation with noexcept
+ 1578 |       static_assert(noexcept(declval<const __hash_code_base_access&>()
+      |                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 1579 |                         ._M_bucket_index(declval<const __node_value_type&>(),
+      |                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 1580 |                                          (std::size_t)0)),
+      |                                          ~~~~~~~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable.h:1578:21: note: ‘false’ evaluates to false
+/usr/include/c++/12.2.1/bits/hashtable_policy.h: In instantiation of ‘std::__detail::_Hash_code_base<_Key, _Value, _ExtractKey, _Hash, _RangeHash, _Unused, __cache_hash_code>::__hash_code std::__detail::_Hash_code_base<_Key, _Value, _ExtractKey, _Hash, _RangeHash, _Unused, __cache_hash_code>::_M_hash_code(const _Key&) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; bool __cache_hash_code = true; __hash_code = long unsigned int]’:
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:773:45:   required from ‘std::__detail::_Map_base<_Key, std::pair<const _Key, _Val>, _Alloc, std::__detail::_Select1st, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, true>::mapped_type& std::__detail::_Map_base<_Key, std::pair<const _Key, _Val>, _Alloc, std::__detail::_Select1st, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, true>::operator[](const key_type&) [with _Key = Pos; _Val = bool; _Alloc = std::allocator<std::pair<const Pos, bool> >; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>; mapped_type = bool; key_type = Pos]’
+/usr/include/c++/12.2.1/bits/unordered_map.h:980:20:   required from ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::mapped_type& std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::operator[](const key_type&) [with _Key = Pos; _Tp = bool; _Hash = std::hash<Pos>; _Pred = std::equal_to<Pos>; _Alloc = std::allocator<std::pair<const Pos, bool> >; mapped_type = bool; key_type = Pos]’
+hw1.cc:281:33:   required from here
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1268:23: error: static assertion failed: hash function must be invocable with an argument of key type
+ 1268 |         static_assert(__is_invocable<const _Hash&, const _Key&>{},
+      |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1268:23: note: ‘std::__is_invocable<const std::hash<Pos>&, const Pos&>()’ evaluates to false
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1270:25: error: no match for call to ‘(const std::hash<Pos>) (const Pos&)’
+ 1270 |         return _M_hash()(__k);
+      |                ~~~~~~~~~^~~~~
+In file included from /usr/include/c++/12.2.1/string:48:
+/usr/include/c++/12.2.1/bits/stl_function.h: In instantiation of ‘constexpr bool std::equal_to<_Tp>::operator()(const _Tp&, const _Tp&) const [with _Tp = Pos]’:
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1688:16:   required from ‘bool std::__detail::_Hashtable_base<_Key, _Value, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _Traits>::_M_key_equals(const _Key&, const std::__detail::_Hash_node_value<_Value, typename _Traits::__hash_cached::value>&) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _Traits = std::__detail::_Hashtable_traits<true, false, true>; typename _Traits::__hash_cached = std::__detail::_Hashtable_traits<true, false, true>::__hash_cached]’
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:1707:39:   required from ‘bool std::__detail::_Hashtable_base<_Key, _Value, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _Traits>::_M_equals(const _Key&, __hash_code, const std::__detail::_Hash_node_value<_Value, typename _Traits::__hash_cached::value>&) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _Traits = std::__detail::_Hashtable_traits<true, false, true>; __hash_code = long unsigned int; typename _Traits::__hash_cached = std::__detail::_Hashtable_traits<true, false, true>::__hash_cached]’
+/usr/include/c++/12.2.1/bits/hashtable.h:1937:23:   required from ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::__node_base_ptr std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::_M_find_before_node(size_type, const key_type&, __hash_code) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>; __node_base_ptr = std::__detail::_Hashtable_alloc<std::allocator<std::__detail::_Hash_node<std::pair<const Pos, bool>, true> > >::__node_base*; size_type = long unsigned int; key_type = Pos; __hash_code = long unsigned int]’
+/usr/include/c++/12.2.1/bits/hashtable.h:816:50:   required from ‘std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::__node_ptr std::_Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::_M_find_node(size_type, const key_type&, __hash_code) const [with _Key = Pos; _Value = std::pair<const Pos, bool>; _Alloc = std::allocator<std::pair<const Pos, bool> >; _ExtractKey = std::__detail::_Select1st; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>; __node_ptr = std::allocator<std::__detail::_Hash_node<std::pair<const Pos, bool>, true> >::value_type*; size_type = long unsigned int; key_type = Pos; __hash_code = long unsigned int]’
+/usr/include/c++/12.2.1/bits/hashtable_policy.h:775:42:   required from ‘std::__detail::_Map_base<_Key, std::pair<const _Key, _Val>, _Alloc, std::__detail::_Select1st, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, true>::mapped_type& std::__detail::_Map_base<_Key, std::pair<const _Key, _Val>, _Alloc, std::__detail::_Select1st, _Equal, _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, true>::operator[](const key_type&) [with _Key = Pos; _Val = bool; _Alloc = std::allocator<std::pair<const Pos, bool> >; _Equal = std::equal_to<Pos>; _Hash = std::hash<Pos>; _RangeHash = std::__detail::_Mod_range_hashing; _Unused = std::__detail::_Default_ranged_hash; _RehashPolicy = std::__detail::_Prime_rehash_policy; _Traits = std::__detail::_Hashtable_traits<true, false, true>; mapped_type = bool; key_type = Pos]’
+/usr/include/c++/12.2.1/bits/unordered_map.h:980:20:   required from ‘std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::mapped_type& std::unordered_map<_Key, _Tp, _Hash, _Pred, _Alloc>::operator[](const key_type&) [with _Key = Pos; _Tp = bool; _Hash = std::hash<Pos>; _Pred = std::equal_to<Pos>; _Alloc = std::allocator<std::pair<const Pos, bool> >; mapped_type = bool; key_type = Pos]’
+hw1.cc:281:33:   required from here
+/usr/include/c++/12.2.1/bits/stl_function.h:378:20: error: no match for ‘operator==’ (operand types are ‘const Pos’ and ‘const Pos’)
+  378 |       { return __x == __y; }
+      |                ~~~~^~~~~~
+In file included from /usr/include/c++/12.2.1/iosfwd:40,
+                 from /usr/include/c++/12.2.1/ios:38:
+/usr/include/c++/12.2.1/bits/postypes.h:192:5: note: candidate: ‘template<class _StateT> bool std::operator==(const fpos<_StateT>&, const fpos<_StateT>&)’
+  192 |     operator==(const fpos<_StateT>& __lhs, const fpos<_StateT>& __rhs)
+      |     ^~~~~~~~
+/usr/include/c++/12.2.1/bits/postypes.h:192:5: note:   template argument deduction/substitution failed:
+/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::fpos<_StateT>’
+  378 |       { return __x == __y; }
+      |                ~~~~^~~~~~
+In file included from /usr/include/c++/12.2.1/string:41:
+/usr/include/c++/12.2.1/bits/allocator.h:219:5: note: candidate: ‘template<class _T1, class _T2> bool std::operator==(const allocator<_CharT>&, const allocator<_T2>&)’
+  219 |     operator==(const allocator<_T1>&, const allocator<_T2>&)
+      |     ^~~~~~~~
+/usr/include/c++/12.2.1/bits/allocator.h:219:5: note:   template argument deduction/substitution failed:
+/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::allocator<_CharT>’
+  378 |       { return __x == __y; }
+      |                ~~~~^~~~~~
+In file included from /usr/include/c++/12.2.1/string:47:
+/usr/include/c++/12.2.1/bits/stl_iterator.h:444:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const reverse_iterator<_Iterator>&, const reverse_iterator<_Iterator>&)’
+  444 |     operator==(const reverse_iterator<_Iterator>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/12.2.1/bits/stl_iterator.h:444:5: note:   template argument deduction/substitution failed:
+/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::reverse_iterator<_Iterator>’
+  378 |       { return __x == __y; }
+      |                ~~~~^~~~~~
+/usr/include/c++/12.2.1/bits/stl_iterator.h:489:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const reverse_iterator<_Iterator>&, const reverse_iterator<_IteratorR>&)’
+  489 |     operator==(const reverse_iterator<_IteratorL>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/12.2.1/bits/stl_iterator.h:489:5: note:   template argument deduction/substitution failed:
+/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::reverse_iterator<_Iterator>’
+  378 |       { return __x == __y; }
+      |                ~~~~^~~~~~
+/usr/include/c++/12.2.1/bits/stl_iterator.h:1656:5: note: candidate: ‘template<class _IteratorL, class _IteratorR> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorR>&)’
+ 1656 |     operator==(const move_iterator<_IteratorL>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/12.2.1/bits/stl_iterator.h:1656:5: note:   template argument deduction/substitution failed:
+/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::move_iterator<_IteratorL>’
+  378 |       { return __x == __y; }
+      |                ~~~~^~~~~~
+/usr/include/c++/12.2.1/bits/stl_iterator.h:1726:5: note: candidate: ‘template<class _Iterator> constexpr bool std::operator==(const move_iterator<_IteratorL>&, const move_iterator<_IteratorL>&)’
+ 1726 |     operator==(const move_iterator<_Iterator>& __x,
+      |     ^~~~~~~~
+/usr/include/c++/12.2.1/bits/stl_iterator.h:1726:5: note:   template argument deduction/substitution failed:
+/usr/include/c++/12.2.1/bits/stl_function.h:378:20: note:   ‘const Pos’ is not derived from ‘const std::move_iterator<_IteratorL>’
+  378 |       { return __x == __y; }
+      |                ~~~~^~~~~~
+make: *** [<builtin>: hw1] Error 1
