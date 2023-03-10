@@ -269,7 +269,7 @@ class Map{
             render_boxPos(renderedMap, state.boxPos);
 
             queue<Pos> nextPosQueue;
-            unordered_map<Pos, bool> vistedPos;
+            unordered_map<Pos, bool> visitedPos;
 
             Pos curPos{.row{state.row}, .col{state.col}};
             Pos nextPos;
@@ -279,12 +279,12 @@ class Map{
             while(!nextPosQueue.empty()){
                 curPos = nextPosQueue.front();
                 nextPosQueue.pop();
-                vistedPos[curPos] = true;
+                visitedPos[curPos] = true;
 
                 add_local_action(renderedMap, curPos, &action_list);
                 
                 for(int dir=0; dir<=3; dir++){
-                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vistedPos, &nextPosQueue);
+                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &visitedPos, &nextPosQueue);
                 }
             }
         }
@@ -298,7 +298,7 @@ class Map{
             Action action;
 
             for(int dir=0; dir <=3; dir++){
-
+                
                 move(curPos, (Dir)dir, &probe_pos);
                 mapObj = get_map_object(renderedMap, probe_pos); 
 
@@ -431,7 +431,7 @@ class Map{
 
             queue<Pos> nextPosQueue;
             queue<Pos> pushPosQueue;
-            unordered_map<Pos, bool> vistedPos;
+            unordered_map<Pos, bool> visitedPos;
             
             Pos probe_pos, curPos = o_pos;
             nextPosQueue.push(curPos);
@@ -446,10 +446,10 @@ class Map{
             while(!nextPosQueue.empty()){
                 curPos = nextPosQueue.front();
                 nextPosQueue.pop();
-                vistedPos[curPos] = true;
+                visitedPos[curPos] = true;
 
                 for(int dir=0; dir<=3; dir++){
-                    add_unvisited_nextPos(rawMap, curPos, (Dir)dir, &vistedPos, &nextPosQueue);
+                    add_unvisited_nextPos(rawMap, curPos, (Dir)dir, &visitedPos, &nextPosQueue);
                 }
             }
             
@@ -458,7 +458,7 @@ class Map{
                 pushPos = pushPosQueue.front();
                 pushPosQueue.pop();
 
-                is_all_unreachable = is_all_unreachable && !is_pos_visited(&vistedPos, pushPos);
+                is_all_unreachable = is_all_unreachable && !is_pos_visited(&visitedPos, pushPos);
                 if(!is_all_unreachable) break;
             }
 
@@ -469,13 +469,13 @@ class Map{
 
 
 
-        bool is_pos_visited(unordered_map<Pos, bool> *vistedPos, Pos pos){
-            return vistedPos.find(pos) == vistedPos.end();
+        bool is_pos_visited(unordered_map<Pos, bool> *visitedPos, Pos pos){
+            return visitedPos.find(pos) == visitedPos.end();
         }
 
 
         bool add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
-                    unordered_map<Pos, bool> *vistedPos, queue<Pos> *nextPosQueue){
+                    unordered_map<Pos, bool> *visitedPos, queue<Pos> *nextPosQueue){
             // check whether the position in `dir` is empty space (' ' or '.').
                 // If so and if not already explored, add to 'nextPosQueue'.
 
@@ -486,7 +486,7 @@ class Map{
             mapObj = get_map_object(renderedMap, nextPos); 
 
             if(mapObj == '.' || mapObj == ' '){
-                if(!is_pos_visited(vistedPos, nextPos)){
+                if(!is_pos_visited(visitedPos, nextPos)){
                     nextPosQueue->push(nextPos);
                 }
             }
@@ -503,9 +503,6 @@ class Map{
             else if(dir == left) nextPos->col -= 1;
         }
 
-        void act(State* state, Action action){
-
-        }
 
         State get_state(){
             return state;
@@ -541,6 +538,87 @@ class Map{
             }
         }
 
+
+        void act(State cur_state, Action action, State* next_state){
+            // - Push box, need update position of one 'x' and 'o'.
+
+            char* renderedMap = new char[fileLen];
+            render_boxPos(renderedMap, cur_state.boxPos);  
+
+            char mapObj;
+            Pos o_pos, x_pos;
+
+            // delete 'o' in old position.
+            o_pos.row = cur_state.row;
+            o_pos.col = cur_state.col;
+            mapObj = get_map_object(renderedMap, o_pos); 
+            if(mapObj == 'o') set_map_object(renderedMap, o_pos, ' ');
+            else if(mapObj == 'O') set_map_object(renderedMap, o_pos, '.');
+            else {fprintf(stderr, "[act()] mapObj != 'o' \n"); exit(-1);}
+            
+            // replace 'x' in old position by 'o'.
+            move(o_pos, action.dir, &x_pos);
+            mapObj = get_map_object(renderedMap, x_pos); 
+            if(mapObj == 'x') set_map_object(renderedMap, x_pos, 'o');
+            else if(mapObj == 'X') set_map_object(renderedMap, x_pos, 'O');
+            else {fprintf(stderr, "[act()] mapObj != 'x' \n"); exit(-1);}
+
+            // place 'x' on its new position. 
+            move(x_pos, action.dir, &x_pos);
+            mapObj = get_map_object(renderedMap, x_pos); 
+            if(mapObj == ' ') set_map_object(renderedMap, x_pos, 'x');
+            else if(mapObj == '.') set_map_object(renderedMap, x_pos, 'X');
+            else {fprintf(stderr, "[act()] `x` new position not a space. \n"); exit(-1);}
+
+
+            map2state(renderedMap, &next_state);
+        }
+
+
+        void set_map_object(char* map, Pos pos, char ch){
+            map[rowBegins[pos.row] + pos.col] = ch;
+        }
+
+
+        void map2state(char* renderedMap, State* state){
+            char ch;
+
+            state.boxPos = 0b0;
+            int offset = 0;
+            int row = 0, col = 0;
+
+            for(int i=0; i<fileLen-1;i++){
+                
+                ch = renderedMap[i]; 
+
+                if(ch == '\n'){ row++; col = 0; continue; }
+
+                if(ch != '#'){ 
+
+                    if(ch == ' ' || ch == '.'){
+                        offset++;
+                    }
+                    else if(ch == 'x' || ch == 'X'){
+                        state.boxPos.set(size_t(offset++), true);
+                    }
+                    else if(ch == 'o' || ch == 'O'){
+                        offset++;
+                        state.row = row;
+                        state.col = col;
+                    }       
+                }             
+
+                col++;
+            }      
+        }
+
+
+        void is_reachable(State state, Pos curPos, Pos visitedPos){
+
+        }
+
+
+
         char *map;
         // char *renderedMap;
 
@@ -553,6 +631,11 @@ class Map{
         int fileLineNum;
         int spaceNum;
 };
+
+
+
+
+
 
 
 class Solver{
@@ -571,8 +654,8 @@ class Solver{
 
         queue<State> nextStateQueue;
 
-        unordered_map<bitset<64>, Pos> vistedState;
-        unordered_map<bitset<64>, PosNode*> vistedCollidedState;
+        unordered_map<bitset<64>, Pos> visitedState;
+        unordered_map<bitset<64>, PosNode*> visitedCollidedState;
 
         State state, nextState;
         list<Action> action_list;
@@ -584,22 +667,19 @@ class Solver{
             state = nextStateQueue.front();
             nextStateQueue.pop();
 
-            add_visited_state(&vistedState, &vistedCollidedState, state);
-                     
-                        
+            add_visited_state(&visitedState, &visitedCollidedState, state);
+
+
             get_available_actions(state, &action_list);
 
             while(!action_list.empty()){
-                nextState = state;
-                map->act(&nextState, action_list.front());
+                
+                map->act(state, action_list.front(), &nextState);
                 action_list.pop_front()
                 
-                if(map->is_done(nextState)){
-                    done = true;
-                    break;
-                } 
+                if(map->is_done(nextState)){done = true; break;} 
 
-                if(!is_state_visited(&vistedState, &vistedCollidedState, nextState)){
+                if(!is_state_visited(&visitedState, &visitedCollidedState, nextState)){
                     nextStateQueue.push(nextState);
                 }
             }
@@ -607,50 +687,49 @@ class Solver{
     }
 
 
-    void add_visited_state(unordered_map<bitset<64>, Pos> *vistedState, 
-                    unordered_map<bitset<64>, PosNode*> *vistedCollidedState, State state){
+    void add_visited_state(unordered_map<bitset<64>, Pos> *visitedState, 
+                    unordered_map<bitset<64>, PosNode*> *visitedCollidedState, State state){
         
         Pos pos;
         pos.row = state.row;
         pos.col = state.col;
-     
-        if(vistedState->find(state.boxPos) == vistedState->end()){ // not inside.
-            (*vistedState)[state.boxPos] = pos;
+
+        if(!is_in_visitedState(&visitedState, state.boxPos)){ // not inside.
+            (*visitedState)[state.boxPos] = pos;
         }else{
-            insert_PosNode(&vistedCollidedState, state);
+            insert_PosNode(&visitedCollidedState, state);
         }
     }
 
 
-    void insert_PosNode(unordered_map<bitset<64>, PosNode> *vistedCollidedState, State state){
+    void insert_PosNode(unordered_map<bitset<64>, PosNode> *visitedCollidedState, State state){
         
         Pos pos;
         pos.row = state.row;
         pos.col = state.col;
 
-        PosNode *cur, *head;
+        PosNode *cur = new PosNode;
         cur->pos = pos;
 
-        if(!is_in_vistedCollidedState(&vistedCollidedState, state.boxPos)){
+        if(!is_in_visitedCollidedState(&visitedCollidedState, state.boxPos)){
             cur->next = NULL;
         }
         else{
-            head = (*vistedCollidedState)[state.boxPos];
-            cur->next = head; 
+            cur->next = (*visitedCollidedState)[state.boxPos];
         }
 
-        (*vistedCollidedState)[state.boxPos] = cur;
+        (*visitedCollidedState)[state.boxPos] = cur;
     }
 
 
-    bool is_state_visited(unordered_map<bitset<64>, Pos> *vistedState, 
-                    unordered_map<bitset<64>, PosNode*> *vistedCollidedState, State state){
+    bool is_state_visited(unordered_map<bitset<64>, Pos> *visitedState, 
+                    unordered_map<bitset<64>, PosNode*> *visitedCollidedState, State state){
 
         // key not found -> haven't been visited.
-        if(!is_in_vistedState(&vistedState, state.boxPos)){return false;}
+        if(!is_in_visitedState(&visitedState, state.boxPos)){return false;}
 
 
-        Pos visitedPos = (*vistedState)[state.boxPos];
+        Pos visitedPos = (*visitedState)[state.boxPos];
         Pos curPos{.row{state.row}, .col{state.col}};
 
 
@@ -660,11 +739,11 @@ class Solver{
         
 
         // key not found -> haven't been visited.
-        if(!is_in_vistedCollidedState(&vistedCollidedState, state.boxPos)){return false;}
+        if(!is_in_visitedCollidedState(&visitedCollidedState, state.boxPos)){return false;}
 
 
   
-        PosNode *cur_ptr = (*vistedCollidedState)[state.boxPos];
+        PosNode *cur_ptr = (*visitedCollidedState)[state.boxPos];
 
         while(cur_ptr){
 
@@ -681,14 +760,14 @@ class Solver{
     }
     
 
-    bool is_in_vistedCollidedState(unordered_map<bitset<64>, PosNode*> *vistedCollidedState, 
+    bool is_in_visitedCollidedState(unordered_map<bitset<64>, PosNode*> *visitedCollidedState, 
                                                                             bitset<64> boxPos){
-        return !(vistedCollidedState->find(boxPos) == vistedCollidedState->end());
+        return !(visitedCollidedState->find(boxPos) == visitedCollidedState->end());
     }
 
 
-    bool is_in_vistedState(unordered_map<bitset<64>, Pos> *vistedState, bitset<64> boxPos){
-        return !(vistedState->find(boxPos) == vistedState->end());
+    bool is_in_visitedState(unordered_map<bitset<64>, Pos> *visitedState, bitset<64> boxPos){
+        return !(visitedState->find(boxPos) == visitedState->end());
     }
 
 
