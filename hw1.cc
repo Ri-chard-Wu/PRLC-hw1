@@ -11,7 +11,7 @@
 #include <queue>
 #include <unordered_map>
 
-// using namespace std;
+using namespace std;
 
 
 
@@ -24,17 +24,26 @@ struct Pos{
     unsigned char row, col;
 };
 
+typedef unsigned short poskey_t;
+
+unsigned short pos2key(Pos pos){    
+    return ((((unsigned short)pos.row) << 8) | ((unsigned short)pos.col));
+}
+
+
 enum Dir{
-    up,
-    right,
-    down,
-    left
+    UP,
+    RIGHT,
+    DOWN,
+    LEFT
 };
 
 struct Action{
     unsigned char row, col;
     Dir dir;
 };
+
+
 
 
 
@@ -279,7 +288,7 @@ class Map{
             render_boxPos(renderedMap, state.boxPos);
 
             queue<Pos> nextPosQueue;
-            unordered_map<Pos, bool> visitedPos;
+            unordered_map<poskey_t, bool> vstdPosTbl;
 
             Pos curPos{.row{state.row}, .col{state.col}};
             Pos nextPos;
@@ -289,12 +298,12 @@ class Map{
             while(!nextPosQueue.empty()){
                 curPos = nextPosQueue.front();
                 nextPosQueue.pop();
-                visitedPos[curPos] = true;
+                vstdPosTbl[pos2key(curPos)] = true;
 
-                add_local_action(renderedMap, curPos, &action_list);
+                add_local_action(renderedMap, curPos, action_list);
                 
                 for(int dir=0; dir<=3; dir++){
-                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &visitedPos, &nextPosQueue);
+                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
                 }
             }
         }
@@ -336,7 +345,7 @@ class Map{
             move(o_pos, action.dir, &x_pos);
 
             if(is_dead_corner(renderedMap, x_pos)){return true;}
-            else if(is_pushPos_unreachable(renderedMap, x_pos)){return true;}            
+            else if(is_pushPos_unreachable(o_pos, x_pos)){return true;}            
         }
 
 
@@ -356,14 +365,14 @@ class Map{
                 dir1 = dir; 
                 dir2 = (dir1 + 1)%4;
 
-                move(x_pos, dir1, &probe_pos1);
+                move(x_pos, (Dir)dir1, &probe_pos1);
                 mapObj_adj1 = get_map_object(renderedMap, probe_pos1);
 
-                move(x_pos, dir2, &probe_pos2);
-                mapObj_adj1 = get_map_object(renderedMap, probe_pos2);
+                move(x_pos, (Dir)dir2, &probe_pos2);
+                mapObj_adj2 = get_map_object(renderedMap, probe_pos2);
 
 
-                if(mapObj_adj1 == '#' && mapObj_adj2 == '#' && mapObj_adj != '.'){ 
+                if(mapObj_adj1 == '#' && mapObj_adj2 == '#' && mapObj_x_pos != '.'){ 
                     return true;
                 }
                 else if(mapObj_adj1 == '#' && mapObj_adj2 == 'x' ||
@@ -428,7 +437,7 @@ class Map{
         }
         
 
-        void is_pushPos_unreachable(Pos o_pos, Pos x_pos){
+        bool is_pushPos_unreachable(Pos o_pos, Pos x_pos){
             // Slow path
             // 1. find all available action on a box
             // 2. get pos needed to do the action
@@ -441,9 +450,9 @@ class Map{
 
             queue<Pos> nextPosQueue;
             queue<Pos> pushPosQueue;
-            unordered_map<Pos, bool> visitedPos;
+            unordered_map<poskey_t, bool> vstdPosTbl;
             
-            Pos probe_pos, curPos = o_pos;
+            Pos pushPos, probe_pos, curPos = o_pos;
             nextPosQueue.push(curPos);
                             
             for(int dir=0; dir<=3; dir++){
@@ -456,10 +465,10 @@ class Map{
             while(!nextPosQueue.empty()){
                 curPos = nextPosQueue.front();
                 nextPosQueue.pop();
-                visitedPos[curPos] = true;
+                vstdPosTbl[pos2key(curPos)] = true;
 
                 for(int dir=0; dir<=3; dir++){
-                    add_unvisited_nextPos(rawMap, curPos, (Dir)dir, &visitedPos, &nextPosQueue);
+                    add_unvisited_nextPos(rawMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
                 }
             }
             
@@ -468,7 +477,7 @@ class Map{
                 pushPos = pushPosQueue.front();
                 pushPosQueue.pop();
 
-                is_all_unreachable = is_all_unreachable && !is_pos_visited(&visitedPos, pushPos);
+                is_all_unreachable = is_all_unreachable && !is_pos_visited(&vstdPosTbl, pushPos);
                 if(!is_all_unreachable) break;
             }
 
@@ -476,13 +485,13 @@ class Map{
         }
 
 
-        bool is_pos_visited(unordered_map<Pos, bool> *visitedPos, Pos pos){
-            return visitedPos.find(pos) == visitedPos.end();
+        bool is_pos_visited(unordered_map<poskey_t, bool> *vstdPosTbl, Pos pos){
+            return vstdPosTbl->find(pos2key(pos)) == vstdPosTbl->end();
         }
 
 
-        bool add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
-                    unordered_map<Pos, bool> *visitedPos, queue<Pos> *nextPosQueue){
+        void add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
+                    unordered_map<poskey_t, bool> *vstdPosTbl, queue<Pos> *nextPosQueue){
             // check whether the position in `dir` is empty space (' ' or '.').
                 // If so and if not already explored, add to 'nextPosQueue'.
 
@@ -493,7 +502,7 @@ class Map{
             mapObj = get_map_object(renderedMap, nextPos); 
 
             if(mapObj == '.' || mapObj == ' '){
-                if(!is_pos_visited(visitedPos, nextPos)){
+                if(!is_pos_visited(vstdPosTbl, nextPos)){
                     nextPosQueue->push(nextPos);
                 }
             }
@@ -505,10 +514,10 @@ class Map{
             nextPos->row = curPos.row;
             nextPos->col = curPos.col;
 
-            if(dir == up) nextPos->row -= 1;
-            else if(dir == right) nextPos->col += 1;
-            else if(dir == down) nextPos->row += 1;
-            else if(dir == left) nextPos->col -= 1;
+            if(dir == UP) nextPos->row -= 1;
+            else if(dir == RIGHT) nextPos->col += 1;
+            else if(dir == DOWN) nextPos->row += 1;
+            else if(dir == LEFT) nextPos->col -= 1;
         }
 
 
@@ -571,7 +580,7 @@ class Map{
             else {fprintf(stderr, "[act()] `x` new position not a space. \n"); exit(-1);}
 
 
-            map2state(renderedMap, &next_state);
+            map2state(renderedMap, next_state);
         }
 
 
@@ -583,7 +592,7 @@ class Map{
         void map2state(char* renderedMap, State* state){
             char ch;
 
-            state.boxPos = 0b0;
+            state->boxPos = 0b0;
             int offset = 0;
             int row = 0, col = 0;
 
@@ -599,12 +608,12 @@ class Map{
                         offset++;
                     }
                     else if(ch == 'x' || ch == 'X'){
-                        state.boxPos.set(size_t(offset++), true);
+                        state->boxPos.set(size_t(offset++), true);
                     }
                     else if(ch == 'o' || ch == 'O'){
                         offset++;
-                        state.row = row;
-                        state.col = col;
+                        state->row = row;
+                        state->col = col;
                     }       
                 }             
 
@@ -620,7 +629,7 @@ class Map{
             char mapObj;
 
             queue<Pos> nextPosQueue;
-            unordered_map<Pos, bool> visitedPos;
+            unordered_map<poskey_t, bool> vstdPosTbl;
             
             Pos probe_pos, curPos = pos1;
             nextPosQueue.push(curPos);
@@ -628,14 +637,14 @@ class Map{
             while(!nextPosQueue.empty()){
                 curPos = nextPosQueue.front();
                 nextPosQueue.pop();
-                visitedPos[curPos] = true;
+                vstdPosTbl[pos2key(curPos)] = true;
 
                 for(int dir=0; dir<=3; dir++){
-                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &visitedPos, &nextPosQueue);
+                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
                 }
             }
 
-            return is_pos_visited(&visitedPos, pos2);
+            return is_pos_visited(&vstdPosTbl, pos2);
         }
 
 
@@ -676,13 +685,13 @@ class Solver{
 
         queue<State> nextStateQueue;
 
-        unordered_map<bitset<64>, Pos> visitedState;
-        unordered_map<bitset<64>, PosNode*> visitedCollidedState;
+        unordered_map<bitset<64>, Pos> vstdStTbl;
+        unordered_map<bitset<64>, struct PosNode*> vstdClidStTbl;
 
         State state, nextState;
         list<Action> action_list;
-        
-        nextStateQueue.push(map.get_state());
+
+        nextStateQueue.push(map->get_state());
         
         bool done = false;
 
@@ -690,7 +699,7 @@ class Solver{
             state = nextStateQueue.front();
             nextStateQueue.pop();
 
-            add_visited_state(&visitedState, &visitedCollidedState, state);
+            add_visited_state(&vstdStTbl, &vstdClidStTbl, state);
 
 
             get_available_actions(state, &action_list);
@@ -702,7 +711,7 @@ class Solver{
                 
                 if(map->is_done(nextState)){done = true; break;} 
 
-                if(!is_state_visited(&visitedState, &visitedCollidedState, nextState)){
+                if(!is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState)){
                     nextStateQueue.push(nextState);
                 }
             }
@@ -710,22 +719,22 @@ class Solver{
     }
 
 
-    void add_visited_state(unordered_map<bitset<64>, Pos> *visitedState, 
-                    unordered_map<bitset<64>, PosNode*> *visitedCollidedState, State state){
+    void add_visited_state(unordered_map<bitset<64>, Pos> *vstdStTbl, 
+                    unordered_map<bitset<64>, struct PosNode*> *vstdClidStTbl, State state){
         
         Pos pos;
         pos.row = state.row;
         pos.col = state.col;
 
-        if(!is_in_visitedState(&visitedState, state.boxPos)){ // not inside.
-            (*visitedState)[state.boxPos] = pos;
+        if(!is_in_vstdStTbl(&vstdStTbl, state.boxPos)){ // not inside.
+            (*vstdStTbl)[state.boxPos] = pos;
         }else{
-            insert_PosNode(&visitedCollidedState, state);
+            insert_PosNode(&vstdClidStTbl, state);
         }
     }
 
 
-    void insert_PosNode(unordered_map<bitset<64>, PosNode> *visitedCollidedState, State state){
+    void insert_PosNode(unordered_map<bitset<64>, struct PosNode*> *vstdClidStTbl, State state){
         
         Pos pos;
         pos.row = state.row;
@@ -734,25 +743,25 @@ class Solver{
         PosNode *cur = new PosNode;
         cur->pos = pos;
 
-        if(!is_in_visitedCollidedState(&visitedCollidedState, state.boxPos)){
+        if(!is_in_vstdClidStTbl(&vstdClidStTbl, state.boxPos)){
             cur->next = NULL;
         }
         else{
-            cur->next = (*visitedCollidedState)[state.boxPos];
+            cur->next = (*vstdClidStTbl)[state.boxPos];
         }
 
-        (*visitedCollidedState)[state.boxPos] = cur;
+        (*vstdClidStTbl)[state.boxPos] = cur;
     }
 
 
-    bool is_state_visited(unordered_map<bitset<64>, Pos> *visitedState, 
-                    unordered_map<bitset<64>, PosNode*> *visitedCollidedState, State state){
+    bool is_state_visited(unordered_map<bitset<64>, Pos> *vstdStTbl, 
+                    unordered_map<bitset<64>, struct PosNode*> *vstdClidStTbl, State state){
 
         // key not found -> haven't been visited.
-        if(!is_in_visitedState(&visitedState, state.boxPos)){return false;}
+        if(!is_in_vstdStTbl(&vstdStTbl, state.boxPos)){return false;}
 
 
-        Pos visitedPos = (*visitedState)[state.boxPos];
+        Pos visitedPos = (*vstdStTbl)[state.boxPos];
         Pos curPos{.row{state.row}, .col{state.col}};
 
 
@@ -762,11 +771,11 @@ class Solver{
         
 
         // key not found -> haven't been visited.
-        if(!is_in_visitedCollidedState(&visitedCollidedState, state.boxPos)){return false;}
+        if(!is_in_vstdClidStTbl(&vstdClidStTbl, state.boxPos)){return false;}
 
 
   
-        PosNode *cur_ptr = (*visitedCollidedState)[state.boxPos];
+        PosNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
 
         while(cur_ptr){
 
@@ -783,21 +792,21 @@ class Solver{
     }
     
 
-    bool is_in_visitedCollidedState(unordered_map<bitset<64>, PosNode*> *visitedCollidedState, 
+    bool is_in_vstdClidStTbl(unordered_map<bitset<64>, struct PosNode*> *vstdClidStTbl, 
                                                                             bitset<64> boxPos){
-        return !(visitedCollidedState->find(boxPos) == visitedCollidedState->end());
+        return !(vstdClidStTbl->find(boxPos) == vstdClidStTbl->end());
     }
 
 
-    bool is_in_visitedState(unordered_map<bitset<64>, Pos> *visitedState, bitset<64> boxPos){
-        return !(visitedState->find(boxPos) == visitedState->end());
+    bool is_in_vstdStTbl(unordered_map<bitset<64>, Pos> *vstdStTbl, bitset<64> boxPos){
+        return !(vstdStTbl->find(boxPos) == vstdStTbl->end());
     }
 
 
     struct PosNode{
         Pos pos;
         PosNode *next;
-    }
+    };
 
     Map* map;
 };
