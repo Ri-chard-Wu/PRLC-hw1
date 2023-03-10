@@ -24,7 +24,7 @@ struct Pos{
     char row, col;
 };
 
-enum Direction{
+enum Dir{
     up,
     right,
     down,
@@ -33,7 +33,7 @@ enum Direction{
 
 struct Action{
     char row, col;
-    Direction dir;
+    Dir dir;
 };
 
 
@@ -279,10 +279,10 @@ class Map{
                 nextPosQueue.pop();
                 vistedPos[curPos] = true;
 
-                check_action(renderedMap, curPos, &action_list);
+                add_local_available_action(renderedMap, curPos, &action_list);
                 
                 for(int dir=0; dir<=3; dir++){
-                    check_move(renderedMap, curPos, (Direction)dir, &vistedPos, &nextPosQueue);
+                    check_move(renderedMap, curPos, (Dir)dir, &vistedPos, &nextPosQueue);
                 }
             }
         }
@@ -293,29 +293,86 @@ class Map{
             Pos curPos{.row{action.row}, .col{action.col}};
             Pos o_pos, x_pos, probe_pos;
 
-            char mapObj, mapObj_adj1, mapObj_adj2;
-
+            char mapObj;
+            
             move(curPos, action.dir, &o_pos);
-            move(o_pos, action.dir, x_pos);
+            move(o_pos, action.dir, &x_pos);
 
             if(){
                 // Fast path
                 // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.'  
+                int dir1, dir2;
+                Pos probe_pos1, probe_pos2;
+                char mapObj_adj1, mapObj_adj2;
+                bool is_dead = true;
 
-                move(x_pos, (Direction)3, &probe_pos);
-                mapObj_adj2 = get_map_object(renderedMap, probe_pos);
+                // mapObj_adj = get_map_object(renderedMap, x_pos);
+
 
                 for(int dir=0; dir<=3; dir++){
+                    
+                    dir1 = dir; 
+                    dir2 = (dir1 + 1)%4;
 
-                    move(x_pos, dir, &probe_pos);
-                    mapObj_adj1 = get_map_object(renderedMap, probe_pos);
+                    move(x_pos, dir1, &probe_pos1);
+                    mapObj_adj1 = get_map_object(renderedMap, probe_pos1);
 
-                    if((mapObj_adj1 == '#' || mapObj_adj1 == 'x' || mapObj_adj1 == 'X') &&
-                            (mapObj_adj2 == '#' || mapObj_adj2 == 'x' || mapObj_adj2 == 'X')){
+                    move(x_pos, dir2, &probe_pos2);
+                    mapObj_adj1 = get_map_object(renderedMap, probe_pos2);
 
+                    if(mapObj_adj1 == '#' && mapObj_adj2 == '#' && mapObj_adj != '.'){
+                        return true;
                     }
+                    else if(mapObj_adj1 == '#' && mapObj_adj2 == 'x'){
 
-                    mapObj_adj2 = mapObj_adj1;
+                        move(probe_pos2, (Dir)((dir2 + 1)%4), &probe_pos);
+                        mapObj_adj = get_map_object(renderedMap, probe_pos);
+                        is_dead = is_dead && (mapObj_adj != ' ' && mapObj_adj != '.');
+
+                        move(probe_pos2, (Dir)((dir2 + 3)%4), &probe_pos);
+                        mapObj_adj = get_map_object(renderedMap, probe_pos);
+                        is_dead = is_dead && (mapObj_adj != ' ' && mapObj_adj != '.');
+
+                        return is_dead;
+   
+                    }
+                    else if(mapObj_adj1 == '#' && mapObj_adj2 == 'X'){
+
+   
+                    }                    
+                    else if(mapObj_adj1 == 'x' && mapObj_adj2 == '#'){
+
+                        move(probe_pos1, (Dir)((dir2 + 1)%4), &probe_pos);
+                        mapObj_adj = get_map_object(renderedMap, probe_pos);
+                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
+
+                        move(probe_pos1, (Dir)((dir2 + 3)%4), &probe_pos);
+                        mapObj_adj = get_map_object(renderedMap, probe_pos);
+                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
+
+                        return is_dead;
+    
+                    }
+                    else if(mapObj_adj1 == 'x' && mapObj_adj2 == 'x'){
+
+                        move(probe_pos2, (Dir)((dir2 + 1)%4), &probe_pos);
+                        mapObj_adj = get_map_object(renderedMap, probe_pos);
+                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
+
+                        move(probe_pos2, (Dir)((dir2 + 3)%4), &probe_pos);
+                        mapObj_adj = get_map_object(renderedMap, probe_pos);
+                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
+   
+                        move(probe_pos1, (Dir)((dir2 + 1)%4), &probe_pos);
+                        mapObj_adj = get_map_object(renderedMap, probe_pos);
+                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
+
+                        move(probe_pos1, (Dir)((dir2 + 3)%4), &probe_pos);
+                        mapObj_adj = get_map_object(renderedMap, probe_pos);
+                        if(mapObj_adj != ' ' && mapObj_adj != '.') is_dead = is_dead && true;
+
+                        return is_dead;
+                    }                    
                 }
             }
             else if(){
@@ -341,7 +398,7 @@ class Map{
                 nextPosQueue.push(curPos);
                                 
                 for(int dir=0; dir<=3; dir++){
-                    move(x_pos, (Direction)dir, &probe_pos);
+                    move(x_pos, (Dir)dir, &probe_pos);
                     mapObj = get_map_object(rawMap, probe_pos);
                     if(mapObj == ' ' || mapObj == '.') pushPosQueue.push(probe_pos);
                 }
@@ -353,7 +410,7 @@ class Map{
                     vistedPos[curPos] = true;
 
                     for(int dir=0; dir<=3; dir++){
-                        check_move(rawMap, curPos, (Direction)dir, &vistedPos, &nextPosQueue);
+                        check_move(rawMap, curPos, (Dir)dir, &vistedPos, &nextPosQueue);
                     }
                 }
                 
@@ -371,30 +428,26 @@ class Map{
         }
 
 
-        bool check_action(char* renderedMap, Pos curPos, list<Action>* action_list){
-            // Find out what action (pushing which box, in what direction) 
-                // can be performed next.
-
+        void add_local_available_action(char* renderedMap, Pos curPos, list<Action>* action_list){
+            // - Find out what adjacent boxes can be pushed.
+            // - Do nothing if no box is adjacent.
 
             Pos probe_pos;
             char mapObj;
             Action action;
 
-            move(curPos, up, &probe_pos);
+            for(int dir=0; dir <=3; dir++){
 
-            // probe_pos = curPos;
-            // probe_pos.row -= 1;
+                move(curPos, (Dir)dir, &probe_pos);
+                mapObj = get_map_object(renderedMap, probe_pos); 
 
-            mapObj = get_map_object(renderedMap, probe_pos); 
-            if(mapObj == 'x' || mapObj == 'X'){
-                if(probe_pos.row > 1){
-                    
-                    // probe_pos.row -= 1;
-                    move(probe_pos, up, &probe_pos);
+                if(mapObj == 'x' || mapObj == 'X'){
+                
+                    move(probe_pos, (Dir)dir, &probe_pos);
                     mapObj = get_map_object(renderedMap, probe_pos);      
 
                     if(mapObj == ' ' || mapObj == '.'){
-                        action.dir = up;
+                        action.dir = (Dir)dir;
                         action.row = curPos.row;
                         action.col = curPos.col;
                         if(!willbe_dead_state(renderedMap, action)) action_list->push_back(action);
@@ -409,7 +462,7 @@ class Map{
         }
 
 
-        bool check_move(char *renderedMap, Pos curPos, Direction dir, 
+        bool check_move(char *renderedMap, Pos curPos, Dir dir, 
                     unordered_map<Pos, bool> *vistedPos, queue<Pos> *nextPosQueue){
             // check whether the position in `dir` is empty space (' ' or '.').
                 // If so and if not already explored, add to 'nextPosQueue'.
@@ -427,7 +480,7 @@ class Map{
             }
         }
 
-        void move(Pos curPos, Direction dir, Pos *nextPos){
+        void move(Pos curPos, Dir dir, Pos *nextPos){
 
             nextPos->row = curPos.row;
             nextPos->col = curPos.col;
