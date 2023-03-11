@@ -945,6 +945,7 @@ class Map{
             move(ocurPos, (Dir)dir, &xcurPos);
             xprevPos = ocurPos;
             
+            // fprintf(stderr, "\n[generate_rvrsState()] call safe place obj:\n\n");
 
             safe_place_object(renderedMap, xcurPos, ' ');
             safe_place_object(renderedMap, xprevPos, 'x');
@@ -1143,15 +1144,16 @@ class Solver{
 
         State prevState, curState, rvrsState;
         Action prevAction, curAction;
-        int dir, opstDir;
+        int dir, opstDir, retCode;
 
 
         curState = doneState;
         curAction = doneAction;
         add_one_step(curAction.dir, true);
         generate_rvrsState(curState, curAction, &rvrsState); // get prev boxPos and player pos.
+        retCode = find_vstd_prevStateAction(rvrsState, &prevState, &prevAction);
 
-        while(find_vstd_prevStateAction(rvrsState, &prevState, &prevAction)){
+        while(retCode == 0){ // 0 -> both `prevState` and `prevAction found.
             
             add_intermediate_steps(prevState, rvrsState);
 
@@ -1159,9 +1161,17 @@ class Solver{
             curAction = prevAction;
             add_one_step(curAction.dir, true);
             generate_rvrsState(curState, curAction, &rvrsState); // get prev boxPos and player pos.
+            retCode = find_vstd_prevStateAction(rvrsState, &prevState, &prevAction);
         }
 
-        add_intermediate_steps(prevState, rvrsState);
+        if(retCode == 2){ // 2 -> only `prevState`, which is true for initial state
+            add_intermediate_steps(prevState, rvrsState);
+        }
+        // else{
+        //     fprintf(stderr, "\n[recover_steps()] breakout from loop before init state found. \n\n");
+        //     terminate(-1);
+        // }
+        
 
     }
 
@@ -1215,15 +1225,21 @@ class Solver{
 
 
 
-    bool find_vstd_prevStateAction(State rvrsState, State* prevState, Action* prevAction){
-        
+    int find_vstd_prevStateAction(State rvrsState, State* prevState, Action* prevAction){
+        // - Three situations:
+        // - 1. both `prevState` and `prevAction found -> code == 0
+        // - 2. both `prevState` and `prevAction not found -> code == 1
+        // - 3. `prevAction` not found -> code == 2
+
+
         // - Not in vstdStTbl.
-        if(!is_in_vstdStTbl(&vstdStTbl, rvrsState.boxPos)){return false;}
+        if(!is_in_vstdStTbl(&vstdStTbl, rvrsState.boxPos)){return 1;}
 
 
         // - In vstdStTbl.
         Pos rvrsPos, prevPos, probePos;
-        Action probeAction;
+        Action  probeAction;
+        bool is_initAction = false;
 
         // get rvrsPos
         rvrsPos.row = rvrsState.row;
@@ -1232,37 +1248,32 @@ class Solver{
         // get probePos
         probeAction = vstdStTbl[rvrsState.boxPos];
 
-        // // Terminating condition. Initial state has no action.
-        // if((probeAction.row == MAP_COORD_RSRV) && (probeAction.row == MAP_COORD_RSRV)) return false;
-
-        map->move_by_action(probeAction, &probePos);
-
+        // Terminating condition. Initial state has no action. Get init pos of player from map.
+        if((probeAction.row == MAP_COORD_RSRV) && (probeAction.row == MAP_COORD_RSRV)){
+            probePos.row = map->state.row;
+            probePos.col = map->state.col;
+            is_initAction = true;
+        }
+        else{
+            map->move_by_action(probeAction, &probePos);
+        }
 
         // See whether rvrsPos and probePos are mutually reachable
         if(map->is_reachable(rvrsState, rvrsPos, probePos)){
-
-            
-            // fprintf(stderr, "\n[find_vstd_prevStateAction()]: is reachable. print pos & map: \n\n");
-            // print_pos(rvrsPos); 
-            // print_pos(probePos); 
-            // char* debugMap = new char[map->fileLen];
-            // map->render_boxPos(debugMap, rvrsState.boxPos); 
-            // map->safe_place_object(debugMap, rvrsPos, 'o');
-            // map->safe_place_object(debugMap, probePos, 'o');
-            // map->print_map(debugMap);
 
             prevState->boxPos = rvrsState.boxPos;
             prevState->row = probePos.row;
             prevState->col = probePos.col;
 
             *prevAction = probeAction;
-            return true;
+            if(is_initAction) return 2;
+            else return 0;
         }
 
 
 
         // - Not in vstdClidStTbl.
-        if(!is_in_vstdClidStTbl(&vstdClidStTbl, rvrsState.boxPos)){return false;}
+        if(!is_in_vstdClidStTbl(&vstdClidStTbl, rvrsState.boxPos)){return 1;}
 
 
 
@@ -1273,7 +1284,8 @@ class Solver{
         while(cur_ptr){
 
             probeAction = cur_ptr->action;
-            map->move_by_action(probeAction, &probePos);
+
+            map->move_by_action(probeAction, &probePos);         
  
             if(map->is_reachable(rvrsState, rvrsPos, probePos)){
 
@@ -1282,13 +1294,13 @@ class Solver{
                 prevState->col = probePos.col;
 
                 *prevAction = probeAction;
-                return true;                
+                return 0;                
             }
             
             cur_ptr = cur_ptr->next;
         }
 
-        return false;
+        return 1;
     }
 
 
@@ -1331,9 +1343,9 @@ class Solver{
 
         nextStateQueue.push(map->get_state());
 
-        // curAction.row = MAP_COORD_RSRV;
-        // curAction.col = MAP_COORD_RSRV;
-        generate_random_init_action(&curAction, map->get_state());
+        curAction.row = MAP_COORD_RSRV;
+        curAction.col = MAP_COORD_RSRV;
+        // generate_random_init_action(&curAction, map->get_state());
         add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
         
 
@@ -1382,28 +1394,28 @@ class Solver{
     }
 
 
-    void generate_random_init_action(Action* action, State initState){
+    // void generate_random_init_action(Action* action, State initState){
 
-        char* renderedMap = new char[map->fileLen];
-        map->render_boxPos(renderedMap, initState.boxPos);
-        char mapObj;
+    //     char* renderedMap = new char[map->fileLen];
+    //     map->render_boxPos(renderedMap, initState.boxPos);
+    //     char mapObj;
 
-        Pos probePos, initPos;
+    //     Pos probePos, initPos;
 
-        initPos.row = initState.row;
-        initPos.col = initState.col;
+    //     initPos.row = initState.row;
+    //     initPos.col = initState.col;
 
-        for(int dir=0; dir <= 3; dir++){
-            map->move(initPos, (Dir)dir, &probePos);
-            mapObj = map->get_map_object(renderedMap, probePos);
-            if(mapObj == ' ' || mapObj == '.'){
-                action->dir = (Dir)((dir+2)%4);
-                action->row = probePos.row;
-                action->col = probePos.col;
-                break;
-            }
-        }
-    }
+    //     for(int dir=0; dir <= 3; dir++){
+    //         map->move(initPos, (Dir)dir, &probePos);
+    //         mapObj = map->get_map_object(renderedMap, probePos);
+    //         if(mapObj == ' ' || mapObj == '.'){
+    //             action->dir = (Dir)((dir+2)%4);
+    //             action->row = probePos.row;
+    //             action->col = probePos.col;
+    //             break;
+    //         }
+    //     }
+    // }
 
 
     void add_visited_state(unordered_map<bitset<64>, Action> *vstdStTbl, 
