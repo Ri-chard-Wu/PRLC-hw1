@@ -69,11 +69,15 @@ struct Action{
     Dir dir;
 };
 
-struct PosNode{
-    Pos pos;
-    PosNode *next;
+struct ActionNode{
+    Action action;
+    ActionNode *next;
 };
 
+// struct PosNode{
+//     Pos pos;
+//     PosNode *next;
+// };
 
 void print_action(Action action){
     fprintf(stderr, "row: %d, col: %d, dir: %d\n", action.row, action.col, (int)action.dir);
@@ -871,6 +875,32 @@ class Map{
         }
 
 
+        void find_rvrsState(State curState, State* rvrsState){
+
+            char* renderedMap = new char[fileLen];
+            render_boxPos(renderedMap, curState.boxPos); 
+
+            Pos ocurPos, xcurPos, oprevPos, xprevPos;
+            
+            int dir = (int)curState.dir;
+            int opstDir = (dir + 2)%4; 
+
+            ocurPos.row = curState.row;
+            ocurPos.col = curState.col;
+
+            move(ocurPos, (Dir)opstDir, oprevPos);
+            move(ocurPos, (Dir)dir, xcurPos);
+            xprevPos = ocurPos;
+            
+
+            safe_place_object(renderedMap, xcurPos, ' ');
+            safe_place_object(renderedMap, xprevPos, 'x');
+            safe_place_object(renderedMap, oprevPos, 'o');
+
+            map2state(renderedMap, rvrsState);
+
+        }
+
 
         char *map;
         // char *renderedMap;
@@ -896,31 +926,102 @@ class Solver{
 
     Solver(char* filename){
         map = new Map(filename);
-
         map->print_map(map->map);
-        explore();
+
+        State doneState;
+        if(explore(&doneState)){
+            recover_steps(doneState);
+        }
     }
 
 
-    void explore(){
+    void recover_steps(State doneState){
+
+        stepsBufSize = 256;
+        stepsBuf = new char[stepsBufSize];
+        stepsOfst = 0;
+
+        State prevState, curState, rvrsState;
+        int dir, opstDir;
+
+        curState = doneState;
+        add_one_step(curState.dir);
+        find_rvrsState(curState, &rvrsState); // get prev boxPos and player pos.
+        find_vstd_prevState(rvrsState, &prevState); // find state with matching boxPos and player pos in vstdStTbl.          
+        
+        while(prevState){
+            add_intermediate_steps(prevState, curState);
+            curState = prevState;
+            add_one_step(curState.dir);
+
+            find_rvrsState(curState, &rvrsState); // get prev boxPos and player pos.
+            find_vstd_prevState(rvrsState, &prevState); // find state with matching boxPos and player pos in vstdStTbl.          
+        }
+
+    }
+
+
+    void find_vstd_prevState(State rvrsState, State* prevState){
+        
+        if(!is_in_vstdStTbl(&vstdStTbl, rvrsState.boxPos)){
+            prevState = NULL;
+            return;
+        }
+
+
+        Pos rvrsPos, prevPos;
+
+        rvrsPos.row = rvrsState.row;
+        rvrsPos.col = rvrsState.col;
+
+        prevPos = vstdStTbl[rvrsState.boxPos];
+
+        prevPos
+
+        if(map->is_reachable(rvrsState, rvrsPos, prevPos)) 
+
+    }
+
+
+    void find_rvrsState(State curState, State* rvrsState){
+        map->find_rvrsState(curState, &rvrsState);
+    }
+
+
+    void add_one_step(Dir dir){
+
+        if(stepsOfst >= stepsBufSize){
+            fprintf(stderr, "\n[add_one_step()] stepsBuf[] overflowed:\n\n");
+            exit(-1);
+        }
+
+        if(dir == UP) stepsBuf[stepsOfst] = 'W';
+        else if(dir == RIGHT) stepsBuf[stepsOfst] = 'D';
+        else if(dir == DOWN) stepsBuf[stepsOfst] = 'S';
+        else if(dir == LEFT) stepsBuf[stepsOfst] = 'A';
+        
+        stepsOfst++;
+    }
+    
+
+    int stepsBufSize;
+    char* stepsBuf;
+    int stepsOfst;
+
+
+
+    bool explore(State* doneState){
         
         State state, nextState;
+        Action curAction;
         list<Action> action_list;
 
         nextStateQueue.push(map->get_state());
         
-        bool done = false;
 
-
-
-        while (!done && !nextStateQueue.empty()) {
+        while (!nextStateQueue.empty()) {
             probe_vstdCount++;
             probe_get_nextStateQueue_max_size(nextStateQueue.size());
-
-
-            // Wrong!! only check with those state in `vstdStTbl` or `vstdClidStTbl`,
-                // but fail to check with those state in `nextStateQueue`.
-
 
             state = nextStateQueue.front();
             nextStateQueue.pop();
@@ -934,82 +1035,88 @@ class Solver{
             // print_action_list(action_list);
 
             while(!action_list.empty()){
-             
-                map->act(state, action_list.front(), &nextState);
+                
+                curAction = action_list.front();
                 action_list.pop_front();
+
+                map->act(state, curAction, &nextState);
+                
                 
                 if(map->is_done(nextState)){
+
+                    *doneState = nextState;
+
                     fprintf(stderr, "\n[explore()]: done!\n\n"); 
                     map->print_state(nextState);
-                    done = true; 
 
                     fprintf(stderr, "\n\n[explore()]: Print stat:");
                     probe_print_stat();
-                    break;
+
+                    return true;
                 } 
-
-
-
-                // Wrong!! only check with those state in `vstdStTbl` or `vstdClidStTbl`,
-                    // but fail to check with those state in `nextStateQueue`.
-
-
 
                 if(!is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState)){ 
                     // fprintf(stderr, "\n[explore()] nextState not visited, will be add to queue:\n\n");
                     // map->print_state(nextState);
-                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState);    
+                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction);    
                     nextStateQueue.push(nextState);
                 }    
             }
         }
+
+        return false;
     }
 
 
 
 
-
-    void add_visited_state(unordered_map<bitset<64>, Pos> *vstdStTbl, 
-                    unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, State state){
+    void add_visited_state(unordered_map<bitset<64>, Action> *vstdStTbl, 
+                    unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
         
-        Pos pos;
-        pos.row = state.row;
-        pos.col = state.col;
+        // Pos pos;
+        // pos.row = state.row;
+        // pos.col = state.col;
+
+        
 
         if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){ // not inside.
-            (*vstdStTbl)[state.boxPos] = pos;
+            // (*vstdStTbl)[state.boxPos] = pos;
+            (*vstdStTbl)[state.boxPos] = action;
         }else{
 
 
-            fprintf(stderr, "\n[add_visited_state()] print new state:\n\n");
-            map->print_state(state);
+            // fprintf(stderr, "\n[add_visited_state()] print new state:\n\n");
+            // map->print_state(state);
 
-            fprintf(stderr, "\n[add_visited_state()] print first visited state:\n\n");
+            // fprintf(stderr, "\n[add_visited_state()] print first visited state:\n\n");
 
-            Pos vstdPos = (*vstdStTbl)[state.boxPos];
-            State vstdState;
-            vstdState.row = vstdPos.row;
-            vstdState.col = vstdPos.col;
-            vstdState.boxPos = state.boxPos;
+            // Pos vstdPos = (*vstdStTbl)[state.boxPos];
+            // State vstdState;
+            // vstdState.row = vstdPos.row;
+            // vstdState.col = vstdPos.col;
+            // vstdState.boxPos = state.boxPos;
             
-            map->print_state(vstdState);
+            // map->print_state(vstdState);
 
 
 
             probe_vstdClidCount++;
-            insert_PosNode(vstdClidStTbl, state);
+            insert_ActionNode(vstdClidStTbl, state, action);
         }
     }
 
 
-    void insert_PosNode(unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, State state){
+    void insert_ActionNode(unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
         
-        Pos pos;
-        pos.row = state.row;
-        pos.col = state.col;
+        // Pos pos;
+        // pos.row = state.row;
+        // pos.col = state.col;
 
-        PosNode *cur = new PosNode;
-        cur->pos = pos;
+        // ActionNode *cur = new ActionNode;
+        // cur->pos = pos;
+
+        ActionNode *cur = new ActionNode;
+        cur->action = action;
 
         if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){
             cur->next = NULL;
@@ -1022,8 +1129,8 @@ class Solver{
     }
 
 
-    bool is_state_visited(unordered_map<bitset<64>, Pos> *vstdStTbl, 
-                    unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, State state){
+    bool is_state_visited(unordered_map<bitset<64>, Action> *vstdStTbl, 
+                    unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
 
 
 
@@ -1031,13 +1138,19 @@ class Solver{
         if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
 
 
-        Pos visitedPos = (*vstdStTbl)[state.boxPos];
+        // Pos visitedPos = (*vstdStTbl)[state.boxPos];
+        Pos vstdPos, preVstdPos;
+        Action preVstdAction = (*vstdStTbl)[state.boxPos];
+        preVstdPos.row = preVstdAction.row;
+        preVstdPos.col = preVstdAction.col;
+        map->move(preVstdPos, preVstdAction.dir, vstdPos);
+
         Pos curPos{.row{state.row}, .col{state.col}};
 
 
         // Have same box positions, and mutually 
             // reachable player positions *with the head* -> deemed visited.
-        if(map->is_reachable(state, curPos, visitedPos)){return true;}
+        if(map->is_reachable(state, curPos, vstdPos)){return true;}
         
 
         // key not found -> haven't been visited.
@@ -1045,15 +1158,19 @@ class Solver{
 
 
   
-        PosNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
+        ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
 
         while(cur_ptr){
 
-            visitedPos = cur_ptr->pos;
+            // vstdPos = cur_ptr->pos;
+            Action preVstdAction = cur_ptr->action;
+            preVstdPos.row = preVstdAction.row;
+            preVstdPos.col = preVstdAction.col;
+            map->move(preVstdPos, preVstdAction.dir, vstdPos);
 
             // Have same box positions, and mutually 
                 // reachable player positions *with other collided pos*. 
-            if(map->is_reachable(state, curPos, visitedPos)){return true;}
+            if(map->is_reachable(state, curPos, vstdPos)){return true;}
             
             cur_ptr = cur_ptr->next;
         }
@@ -1062,19 +1179,21 @@ class Solver{
     }
     
 
-    bool is_in_vstdClidStTbl(unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, 
+    bool is_in_vstdClidStTbl(unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, 
                                                                             bitset<64> boxPos){
         return !(vstdClidStTbl->find(boxPos) == vstdClidStTbl->end());
     }
 
 
-    bool is_in_vstdStTbl(unordered_map<bitset<64>, Pos> *vstdStTbl, bitset<64> boxPos){
+    bool is_in_vstdStTbl(unordered_map<bitset<64>, Action> *vstdStTbl, bitset<64> boxPos){
         return !(vstdStTbl->find(boxPos) == vstdStTbl->end());
     }
 
 
-    unordered_map<bitset<64>, Pos> vstdStTbl;
-    unordered_map<bitset<64>, PosNode*> vstdClidStTbl;
+
+
+    unordered_map<bitset<64>, Action> vstdStTbl;
+    unordered_map<bitset<64>, ActionNode*> vstdClidStTbl;
     queue<State> nextStateQueue;
     
 
