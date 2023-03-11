@@ -926,6 +926,9 @@ class Map{
 
 
         void generate_rvrsState(State curState, Action curAction, State* rvrsState){
+            
+            // fprintf(stderr, "==========================\n[generate_rvrsState()] print curState:\n\n");
+            // print_state(curState);
 
             char* renderedMap = new char[fileLen];
             render_boxPos(renderedMap, curState.boxPos); 
@@ -949,6 +952,14 @@ class Map{
 
             map2state(renderedMap, rvrsState);
 
+
+
+            // fprintf(stderr, "\n[generate_rvrsState()] print reversed state:\n\n");
+            // print_state(*rvrsState);
+
+            // print_action(curAction);
+            // fprintf(stderr, "==========================\n");
+
         }
 
 
@@ -964,6 +975,7 @@ class Map{
 
 
         bool get_steps(boxPos_t boxPos, Pos fromPos, Pos toPos, list<Dir>* steps){
+
     
             char* renderedMap = new char[fileLen];
             render_boxPos(renderedMap, boxPos);
@@ -1136,9 +1148,8 @@ class Solver{
 
         curState = doneState;
         curAction = doneAction;
-        add_one_step(curAction.dir);
+        add_one_step(curAction.dir, true);
         generate_rvrsState(curState, curAction, &rvrsState); // get prev boxPos and player pos.
-        // add_intermediate_steps(rvrsState, curState);
 
         while(find_vstd_prevStateAction(rvrsState, &prevState, &prevAction)){
             
@@ -1146,10 +1157,11 @@ class Solver{
 
             curState = prevState;
             curAction = prevAction;
-            add_one_step(curAction.dir);
+            add_one_step(curAction.dir, true);
             generate_rvrsState(curState, curAction, &rvrsState); // get prev boxPos and player pos.
-            // add_intermediate_steps(prevState, curState);
         }
+
+        add_intermediate_steps(prevState, rvrsState);
 
     }
 
@@ -1183,14 +1195,20 @@ class Solver{
         Pos fromPos{.row{prevState.row}, .col{prevState.col}};
         Pos toPos{.row{rvrsState.row}, .col{rvrsState.col}};
 
+        // fprintf(stderr, "\n[add_intermediate_steps()] print pos & steps:\n\n");
+        // print_pos(fromPos);
+        // print_pos(toPos);
+
         list<Dir> steps;
 
         map->get_steps(prevState.boxPos, fromPos, toPos, &steps);
         // test_get_steps(prevState.boxPos, fromPos, toPos, steps);
 
         while (!steps.empty()){
-            add_one_step(steps.front());
-            steps.pop_front();
+
+            // fprintf(stderr, "%d ", (int)steps.back());
+            add_one_step(steps.back(), false);
+            steps.pop_back();
         }
 
     }
@@ -1214,8 +1232,8 @@ class Solver{
         // get probePos
         probeAction = vstdStTbl[rvrsState.boxPos];
 
-        // Terminating condition. Initial state has no action.
-        if((probeAction.row == MAP_COORD_RSRV) && (probeAction.row == MAP_COORD_RSRV)) return false;
+        // // Terminating condition. Initial state has no action.
+        // if((probeAction.row == MAP_COORD_RSRV) && (probeAction.row == MAP_COORD_RSRV)) return false;
 
         map->move_by_action(probeAction, &probePos);
 
@@ -1279,7 +1297,9 @@ class Solver{
     }
 
 
-    void add_one_step(Dir dir){
+    void add_one_step(Dir dir, bool cap){
+
+        cap = true;
 
         probe__add_one_step__calling_count++;
 
@@ -1288,10 +1308,10 @@ class Solver{
             terminate(-1);
         }
 
-        if(dir == UP) stepsBuf[stepsOfst] = 'W';
-        else if(dir == RIGHT) stepsBuf[stepsOfst] = 'D';
-        else if(dir == DOWN) stepsBuf[stepsOfst] = 'S';
-        else if(dir == LEFT) stepsBuf[stepsOfst] = 'A';
+        if(dir == UP) stepsBuf[stepsOfst] = cap?'W':'w';
+        else if(dir == RIGHT) stepsBuf[stepsOfst] = cap?'D':'d';
+        else if(dir == DOWN) stepsBuf[stepsOfst] = cap?'S':'s';
+        else if(dir == LEFT) stepsBuf[stepsOfst] = cap?'A':'a';
         
         stepsOfst++;
     }
@@ -1311,8 +1331,9 @@ class Solver{
 
         nextStateQueue.push(map->get_state());
 
-        curAction.row = MAP_COORD_RSRV;
-        curAction.col = MAP_COORD_RSRV;
+        // curAction.row = MAP_COORD_RSRV;
+        // curAction.col = MAP_COORD_RSRV;
+        generate_random_init_action(&curAction, map->get_state());
         add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
         
 
@@ -1361,6 +1382,28 @@ class Solver{
     }
 
 
+    void generate_random_init_action(Action* action, State initState){
+
+        char* renderedMap = new char[map->fileLen];
+        map->render_boxPos(renderedMap, initState.boxPos);
+        char mapObj;
+
+        Pos probePos, initPos;
+
+        initPos.row = initState.row;
+        initPos.col = initState.col;
+
+        for(int dir=0; dir <= 3; dir++){
+            map->move(initPos, (Dir)dir, &probePos);
+            mapObj = map->get_map_object(renderedMap, probePos);
+            if(mapObj == ' ' || mapObj == '.'){
+                action->dir = (Dir)((dir+2)%4);
+                action->row = probePos.row;
+                action->col = probePos.col;
+                break;
+            }
+        }
+    }
 
 
     void add_visited_state(unordered_map<bitset<64>, Action> *vstdStTbl, 
