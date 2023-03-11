@@ -1,21 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
-// #include <string.h>
-
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <bitset>
-
 #include <list>
 #include <queue>
 #include <unordered_map>
-
 #include <signal.h>
-
 using namespace std;
 
 
+
+
+#define MAP_COORD_MAX 254 // last value is reserved.
+#define MAP_COORD_RSRV 255
 
 
 unsigned int probe_vstdCount;
@@ -37,8 +36,6 @@ void probe_print_stat(){
     
     fprintf(stderr, "\n\n");
 }
-
-
 
 
 struct State{
@@ -74,10 +71,6 @@ struct ActionNode{
     ActionNode *next;
 };
 
-// struct PosNode{
-//     Pos pos;
-//     PosNode *next;
-// };
 
 void print_action(Action action){
     fprintf(stderr, "row: %d, col: %d, dir: %d\n", action.row, action.col, (int)action.dir);
@@ -158,6 +151,8 @@ class Map{
 
             FILE* ptr;
             char ch;
+            int col=0;
+            
         
             ptr = fopen(filename, "r");
             if (NULL == ptr) {
@@ -168,11 +163,24 @@ class Map{
             fileLineNum = 0;
             fileLen = 0;           
             spaceNum = 0; 
+            colMax=0;
             ch = fgetc(ptr);
+
             while (ch != EOF){  
+
                 fileLen++;
-                if(ch == '\n') fileLineNum++;
-                else if(ch != '\n' && ch != EOF && ch != '#') spaceNum++;
+                col++;
+
+                if(ch == '\n') {
+                    fileLineNum++;
+                    col--;
+                    if(col > colMax) colMax = col;
+                    col=0;
+                }
+                else if(ch != '\n' && ch != EOF && ch != '#') {
+                    spaceNum++;
+                }
+
                 fprintf(stderr, "%c", ch);
                 ch = fgetc(ptr);
             }
@@ -183,6 +191,11 @@ class Map{
             fprintf(stderr, "spaceNum: %d\n", spaceNum);
 
             fclose(ptr);
+
+            if((colMax-1 > MAP_COORD_MAX) || (fileLineNum-1 > MAP_COORD_MAX)){
+                fprintf(stderr, "[_get_file_info]: map size larger than can be handled.\n");
+                exit(-1);
+            }
 
         }
 
@@ -318,8 +331,6 @@ class Map{
             // fprintf(stderr, "\n[get_available_actions()] initial map to find available action:\n\n"); 
             // print_state(state);
 
-            
-
             queue<Pos> nextPosQueue;
             unordered_map<poskey_t, bool> vstdPosTbl;
 
@@ -330,19 +341,14 @@ class Map{
 
             while(!nextPosQueue.empty()){
                 
-
                 curPos = nextPosQueue.front();
                 nextPosQueue.pop();
                 vstdPosTbl[pos2key(curPos)] = true;
-
-
 
                 add_local_action(renderedMap, curPos, action_list); // ok
 
                 // fprintf(stderr, "\n[get_available_actions()] print local action:\n\n"); 
                 // print_action_list(*action_list);
-                
-
 
                 for(int dir=0; dir<=3; dir++){
                     add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
@@ -625,7 +631,7 @@ class Map{
         }
 
 
-        void add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
+        bool add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
                     unordered_map<poskey_t, bool> *vstdPosTbl, queue<Pos> *nextPosQueue){
             // check whether the position in `dir` is empty space (' ' or '.').
                 // If so and if not already explored, add to 'nextPosQueue'.
@@ -646,13 +652,19 @@ class Map{
                     // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) not visited.\n", nextPos.row, nextPos.col);
 
                     nextPosQueue->push(nextPos);
+                    return true;
                 }else{
                     // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) already visited.\n", nextPos.row, nextPos.col);
+                    return false;                    
                 }
             }
 
+            return false;
+
             // fprintf(stderr, "\n\n");
         }
+
+
 
 
         void move(Pos curPos, Dir dir, Pos *nextPos){
@@ -911,6 +923,54 @@ class Map{
 
         }
 
+
+
+        bool get_steps(State state, Pos fromPos, Pos toPos){
+    
+            char* renderedMap = new char[fileLen];
+            render_boxPos(renderedMap, state.boxPos);
+
+            queue<Pos> nextPosQueue;
+            unordered_map<poskey_t, poskey_t> vstdPosTbl;
+
+            Pos curPos = fromPos, nextPos;
+            poskey_t curPosKey;
+            Action action;
+
+            nextPosQueue.push(curPos);
+            vstdPosTbl[pos2key(curPos)] = (MAP_COORD_RSRV << 8) | MAP_COORD_RSRV;
+            
+            while(!nextPosQueue.empty()){
+                
+                curPos = nextPosQueue.front();
+                nextPosQueue.pop();
+                curPosKey = pos2key(curPos);
+
+                for(int dir=0; dir<=3; dir++){
+
+                    if(add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);){
+                        
+                        nextPos = nextPosQueue.back();
+                        vstdPosTbl[pos2key(nextPos)] = curPosKey;
+                    }
+                }
+            }
+
+
+
+            if(is_pos_visited(&vstdPosTbl, toPos)){
+                
+                poskey_t key = vstdPosTbl[pos2key(toPos)];
+
+                return true;
+            }
+        }
+
+        bool is_pos_visited(unordered_map<poskey_t, poskey_t> *vstdPosTbl, Pos pos){
+            return !(vstdPosTbl->find(pos2key(pos)) == vstdPosTbl->end());
+        }        
+
+
         char *map;
         // char *renderedMap;
 
@@ -922,6 +982,7 @@ class Map{
         int fileLen;
         int fileLineNum;
         int spaceNum;
+        int colMax;
 };
 
 
@@ -964,7 +1025,7 @@ class Solver{
 
         while(find_vstd_prevStateAction(rvrsState, &prevState, &prevAction)){
             
-            add_intermediate_steps(prevState, curState);
+            add_intermediate_steps(prevState, rvrsState);
 
             curState = prevState;
             curAction = prevAction;
@@ -975,12 +1036,20 @@ class Solver{
 
     }
 
+    
+    void add_intermediate_steps(State prevState, State rvrsState){
 
-    bool find_vstd_prevAction(State rvrsState, State* prevState, Action* prevAction){
+    }
+
+
+
+    bool find_vstd_prevStateAction(State rvrsState, State* prevState, Action* prevAction){
         
+        // - Not in vstdStTbl.
         if(!is_in_vstdStTbl(&vstdStTbl, rvrsState.boxPos)){return false;}
 
 
+        // - In vstdStTbl.
         Pos rvrsPos, prevPos, probePos;
         Action probeAction;
 
@@ -1002,9 +1071,37 @@ class Solver{
             *prevAction = probeAction;
             return true;
         }
-
         
 
+
+        // - Not in vstdClidStTbl.
+        if(!is_in_vstdClidStTbl(&vstdClidStTbl, rvrsState.boxPos)){return false;}
+
+
+
+
+        // - In vstdClidStTbl.
+        ActionNode *cur_ptr = vstdClidStTbl[rvrsState.boxPos];
+
+        while(cur_ptr){
+
+            probeAction = cur_ptr->action;
+            map->move_by_action(probeAction, &probePos);
+ 
+            if(map->is_reachable(rvrsState, rvrsPos, probePos)){
+
+                prevState->boxPos = rvrsState.boxPos;
+                prevState->row = probePos.row;
+                prevState->col = probePos.col;
+
+                *prevAction = probeAction;
+                return true;                
+            }
+            
+            cur_ptr = cur_ptr->next;
+        }
+
+        return false;
     }
 
 
