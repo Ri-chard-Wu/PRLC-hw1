@@ -370,7 +370,7 @@ class Map{
                 // print_action_list(*action_list);
 
                 for(int dir=0; dir<=3; dir++){
-                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
+                    add_unvisited_nextPos<bool>(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
                 }
             }
         }
@@ -625,7 +625,7 @@ class Map{
                 vstdPosTbl[pos2key(curPos)] = true;
 
                 for(int dir=0; dir<=3; dir++){
-                    add_unvisited_nextPos(onexMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
+                    add_unvisited_nextPos<bool>(onexMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
                 }
             }
             
@@ -645,13 +645,18 @@ class Map{
 
 
 
-        bool is_pos_visited(unordered_map<poskey_t, bool> *vstdPosTbl, Pos pos){
+
+        template<class dictValue_t>
+        bool is_pos_visited(unordered_map<poskey_t, dictValue_t> *vstdPosTbl, Pos pos){
             return !(vstdPosTbl->find(pos2key(pos)) == vstdPosTbl->end());
         }
 
 
+
+
+        template<class dictValue_t>
         bool add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
-                    unordered_map<poskey_t, bool> *vstdPosTbl, queue<Pos> *nextPosQueue){
+                    unordered_map<poskey_t, dictValue_t> *vstdPosTbl, queue<Pos> *nextPosQueue){
             // check whether the position in `dir` is empty space (' ' or '.').
                 // If so and if not already explored, add to 'nextPosQueue'.
 
@@ -666,7 +671,7 @@ class Map{
             // fprintf(stderr, "[add_unvisited_nextPos()] mapObj: %c\n", mapObj);
 
             if(mapObj == '.' || mapObj == ' '){
-                if(!is_pos_visited(vstdPosTbl, nextPos)){
+                if(!is_pos_visited<dictValue_t>(vstdPosTbl, nextPos)){
                     
                     // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) not visited.\n", nextPos.row, nextPos.col);
 
@@ -857,11 +862,11 @@ class Map{
                 vstdPosTbl[pos2key(curPos)] = true;
 
                 for(int dir=0; dir<=3; dir++){
-                    add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
+                    add_unvisited_nextPos<bool>(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
                 }
             }
 
-            if(is_pos_visited(&vstdPosTbl, pos2)){
+            if(is_pos_visited<bool>(&vstdPosTbl, pos2)){
 
                 // if((pos1.row != pos2.row) && (pos1.col != pos2.col)){
                 //     State tmpSt;
@@ -919,8 +924,8 @@ class Map{
             ocurPos.row = curState.row;
             ocurPos.col = curState.col;
 
-            move(ocurPos, (Dir)opstDir, oprevPos);
-            move(ocurPos, (Dir)dir, xcurPos);
+            move(ocurPos, (Dir)opstDir, &oprevPos);
+            move(ocurPos, (Dir)dir, &xcurPos);
             xprevPos = ocurPos;
             
 
@@ -967,7 +972,8 @@ class Map{
 
                 for(int dir=0; dir<=3; dir++){
 
-                    if(add_unvisited_nextPos(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);){
+                    if(add_unvisited_nextPos<poskey_t>(renderedMap, curPos, 
+                                             (Dir)dir, &vstdPosTbl, &nextPosQueue)){
                         
                         nextPos = nextPosQueue.back();
                         vstdPosTbl[pos2key(nextPos)] = curPosKey;
@@ -976,7 +982,7 @@ class Map{
             }
 
 
-            if(is_pos_visited(&vstdPosTbl, toPos)){
+            if(is_pos_visited<poskey_t>(&vstdPosTbl, toPos)){
                 
                 Pos curPos, prevPos;
                 Dir step;
@@ -985,17 +991,17 @@ class Map{
 
                 curPos = toPos;
                 curPosKey = pos2key(curPos);
-                prevPoskey = vstdPosTbl[curPosKey]
+                prevPoskey = vstdPosTbl[curPosKey];
 
                 while(prevPoskey != nullPosKey){
                     prevPos = key2pos(prevPoskey);
 
                     infer_local_dir(prevPos, curPos, &step);
-                    steps.push_front(step);
+                    steps->push_front(step);
 
                     curPos = prevPos;
                     curPosKey = prevPoskey;
-                    prevPoskey = vstdPosTbl[curPosKey]
+                    prevPoskey = vstdPosTbl[curPosKey];
                 }
                 
                 return true;
@@ -1016,7 +1022,13 @@ class Map{
             trow = tPos.row;
             tcol = tPos.col;
             
-            if(frow = trow){
+
+            // fprintf(stderr, "\n[infer_local_dir()] frow: %d, fcol: %d\n", frow, fcol);
+            // fprintf(stderr, "\n[infer_local_dir()] trow: %d, tcol: %d\n", trow, tcol);
+
+
+
+            if(frow == trow){
                 if(fcol - tcol == 1){
                     *dir = LEFT;
                 }
@@ -1024,7 +1036,8 @@ class Map{
                     *dir = RIGHT;
                 }
                 else{
-                    fprintf(stderr, "\n[infer_local_dir()] Invalid input, not adjacent pos's:\n\n");
+
+                    fprintf(stderr, "\n[infer_local_dir()] Invalid input, not adjacent col's:\n\n");
                     exit(-1);                    
                 }
             }
@@ -1036,7 +1049,7 @@ class Map{
                     *dir = UP;
                 }
                 else{
-                    fprintf(stderr, "\n[infer_local_dir()] Invalid input, not adjacent pos's:\n\n");
+                    fprintf(stderr, "\n[infer_local_dir()] Invalid input, not adjacent row's:\n\n");
                     exit(-1);                    
                 }
             }
@@ -1048,9 +1061,9 @@ class Map{
 
 
 
-        bool is_pos_visited(unordered_map<poskey_t, poskey_t> *vstdPosTbl, Pos pos){
-            return !(vstdPosTbl->find(pos2key(pos)) == vstdPosTbl->end());
-        }        
+        // bool is_pos_visited(unordered_map<poskey_t, poskey_t> *vstdPosTbl, Pos pos){
+        //     return !(vstdPosTbl->find(pos2key(pos)) == vstdPosTbl->end());
+        // }        
 
 
         char *map;
@@ -1084,9 +1097,16 @@ class Solver{
         Action doneAction;
         if(explore(&doneState, &doneAction)){
             recover_steps(doneState, doneAction);
+            output_steps();
         }
     }
 
+    void output_steps(){
+        for(int i = 0; i < stepsOfst; i++){
+            printf("%c", stepsBuf[i]);
+        }
+        printf("\n");
+    }
 
     void recover_steps(State doneState, Action doneAction){
 
@@ -1200,7 +1220,7 @@ class Solver{
 
 
     void generate_rvrsState(State curState, Action curAction, State* rvrsState){
-        map->generate_rvrsState(curState, curAction, &rvrsState);
+        map->generate_rvrsState(curState, curAction, rvrsState);
     }
 
 
@@ -1360,7 +1380,7 @@ class Solver{
         Action preVstdAction = (*vstdStTbl)[state.boxPos];
         preVstdPos.row = preVstdAction.row;
         preVstdPos.col = preVstdAction.col;
-        map->move(preVstdPos, preVstdAction.dir, vstdPos);
+        map->move(preVstdPos, preVstdAction.dir, &vstdPos);
 
         Pos curPos{.row{state.row}, .col{state.col}};
 
@@ -1383,7 +1403,7 @@ class Solver{
             Action preVstdAction = cur_ptr->action;
             preVstdPos.row = preVstdAction.row;
             preVstdPos.col = preVstdAction.col;
-            map->move(preVstdPos, preVstdAction.dir, vstdPos);
+            map->move(preVstdPos, preVstdAction.dir, &vstdPos);
 
             // Have same box positions, and mutually 
                 // reachable player positions *with other collided pos*. 
