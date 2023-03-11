@@ -19,6 +19,7 @@ using namespace std;
 
 
 unsigned int probe_vstdCount;
+unsigned int probe_vstdClidCount;
 int probe_nextStateQueue_max_size;
 
 void probe_get_nextStateQueue_max_size(int queueSize){
@@ -27,6 +28,15 @@ void probe_get_nextStateQueue_max_size(int queueSize){
     }
 }
 
+void probe_print_stat(){
+    fprintf(stderr, "\n\n");
+
+    fprintf(stderr, "probe_vstdCount: %d\n", probe_vstdCount);
+    fprintf(stderr, "probe_vstdClidCount: %d\n", probe_vstdClidCount);
+    fprintf(stderr, "probe_nextStateQueue_max_size: %d\n", probe_nextStateQueue_max_size);
+    
+    fprintf(stderr, "\n\n");
+}
 
 
 
@@ -816,7 +826,48 @@ class Map{
                 }
             }
 
-            return is_pos_visited(&vstdPosTbl, pos2);
+            if(is_pos_visited(&vstdPosTbl, pos2)){
+
+                // if((pos1.row != pos2.row) && (pos1.col != pos2.col)){
+                //     State tmpSt;
+                //     tmpSt.boxPos = state.boxPos;
+
+                //     fprintf(stderr, "\n[is_reachable()] is visited. print pos1 state:\n\n");
+                //     tmpSt.row = pos1.row;
+                //     tmpSt.col = pos1.col;
+                //     print_state(tmpSt);
+
+
+                //     fprintf(stderr, "\n[is_reachable()] is visited. print pos2 state:\n\n");
+                //     tmpSt.row = pos2.row;
+                //     tmpSt.col = pos2.col;
+                //     print_state(tmpSt);                    
+                // }
+
+                return true;
+            }
+            else{
+                
+                // if((pos1.row != pos2.row) && (pos1.col != pos2.col)){
+                //     State tmpSt;
+                //     tmpSt.boxPos = state.boxPos;
+
+                //     fprintf(stderr, "\n[is_reachable()] not visited. print pos1 state:\n\n");
+                //     tmpSt.row = pos1.row;
+                //     tmpSt.col = pos1.col;
+                //     print_state(tmpSt);
+
+
+                //     fprintf(stderr, "\n[is_reachable()] not visited. print pos2 state:\n\n");
+                //     tmpSt.row = pos2.row;
+                //     tmpSt.col = pos2.col;
+                //     print_state(tmpSt);             
+                // }
+
+
+
+                return false;
+            }
         }
 
 
@@ -853,12 +904,6 @@ class Solver{
 
     void explore(){
         
-        // fprintf(stderr, "\n[explore()]:\n\n"); 
-
-        
-
-        queue<State> nextStateQueue;
-
         State state, nextState;
         list<Action> action_list;
 
@@ -866,17 +911,21 @@ class Solver{
         
         bool done = false;
 
-        
+
 
         while (!done && !nextStateQueue.empty()) {
             probe_vstdCount++;
             probe_get_nextStateQueue_max_size(nextStateQueue.size());
 
 
+            // Wrong!! only check with those state in `vstdStTbl` or `vstdClidStTbl`,
+                // but fail to check with those state in `nextStateQueue`.
+
+
             state = nextStateQueue.front();
             nextStateQueue.pop();
 
-            add_visited_state(&vstdStTbl, &vstdClidStTbl, state);    
+            // add_visited_state(&vstdStTbl, &vstdClidStTbl, state);    
 
             map->get_available_actions(state, &action_list); 
 
@@ -892,18 +941,27 @@ class Solver{
                 if(map->is_done(nextState)){
                     fprintf(stderr, "\n[explore()]: done!\n\n"); 
                     map->print_state(nextState);
-                    done = true; break;
+                    done = true; 
+
+                    fprintf(stderr, "\n\n[explore()]: Print stat:");
+                    probe_print_stat();
+                    break;
                 } 
+
+
+
+                // Wrong!! only check with those state in `vstdStTbl` or `vstdClidStTbl`,
+                    // but fail to check with those state in `nextStateQueue`.
+
+
 
                 if(!is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState)){ 
                     // fprintf(stderr, "\n[explore()] nextState not visited, will be add to queue:\n\n");
                     // map->print_state(nextState);
+                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState);    
                     nextStateQueue.push(nextState);
                 }    
             }
-
-
-
         }
     }
 
@@ -921,6 +979,24 @@ class Solver{
         if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){ // not inside.
             (*vstdStTbl)[state.boxPos] = pos;
         }else{
+
+
+            fprintf(stderr, "\n[add_visited_state()] print new state:\n\n");
+            map->print_state(state);
+
+            fprintf(stderr, "\n[add_visited_state()] print first visited state:\n\n");
+
+            Pos vstdPos = (*vstdStTbl)[state.boxPos];
+            State vstdState;
+            vstdState.row = vstdPos.row;
+            vstdState.col = vstdPos.col;
+            vstdState.boxPos = state.boxPos;
+            
+            map->print_state(vstdState);
+
+
+
+            probe_vstdClidCount++;
             insert_PosNode(vstdClidStTbl, state);
         }
     }
@@ -950,7 +1026,6 @@ class Solver{
                     unordered_map<bitset<64>, PosNode*> *vstdClidStTbl, State state){
 
 
-        // fprintf(stderr, "\n[is_state_visited()]:\n\n"); 
 
         // key not found -> haven't been visited.
         if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
@@ -1000,6 +1075,7 @@ class Solver{
 
     unordered_map<bitset<64>, Pos> vstdStTbl;
     unordered_map<bitset<64>, PosNode*> vstdClidStTbl;
+    queue<State> nextStateQueue;
     
 
     Map* map;
@@ -1010,13 +1086,10 @@ class Solver{
 
 void signal_callback_handler(int signum) {
     
-    fprintf(stderr, "\n\nTerminate program. Print stat:\n\n");
+    fprintf(stderr, "\n\nTerminate program. Print stat:");
 
-    fprintf(stderr, "probe_vstdCount: %d\n", probe_vstdCount);
-    fprintf(stderr, "probe_nextStateQueue_max_size: %d\n", probe_nextStateQueue_max_size);
+    probe_print_stat();
 
-
-    fprintf(stderr, "\n\n");
     exit(signum);
 }
 
@@ -1028,6 +1101,7 @@ int main(int argc, char** argv) {
     fprintf(stderr, "argv[1]: %s\n", argv[1]);
 
     probe_vstdCount = 0;
+    probe_vstdClidCount = 0;
     probe_nextStateQueue_max_size = 0;
 
     Solver solver(argv[1]);
