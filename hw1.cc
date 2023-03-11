@@ -20,6 +20,7 @@ using namespace std;
 unsigned int probe_vstdCount;
 unsigned int probe_vstdClidCount;
 int probe_nextStateQueue_max_size;
+int probe__add_one_step__calling_count;
 
 void probe_get_nextStateQueue_max_size(int queueSize){
     if(queueSize > probe_nextStateQueue_max_size){
@@ -33,8 +34,18 @@ void probe_print_stat(){
     fprintf(stderr, "probe_vstdCount: %d\n", probe_vstdCount);
     fprintf(stderr, "probe_vstdClidCount: %d\n", probe_vstdClidCount);
     fprintf(stderr, "probe_nextStateQueue_max_size: %d\n", probe_nextStateQueue_max_size);
+    fprintf(stderr, "probe__add_one_step__calling_count: %d\n", probe__add_one_step__calling_count);
     
     fprintf(stderr, "\n\n");
+}
+
+
+void terminate(int code){
+    
+    fprintf(stderr, "\n\n[terminate()]: Print stat:");
+
+    probe_print_stat();
+    exit(code);
 }
 
 
@@ -90,6 +101,10 @@ struct ActionNode{
     ActionNode *next;
 };
 
+
+void print_pos(Pos pos){
+    fprintf(stderr, "row: %d, col: %d\n", pos.row, pos.col);
+}
 
 void print_action(Action action){
     fprintf(stderr, "row: %d, col: %d, dir: %d\n", action.row, action.col, (int)action.dir);
@@ -844,7 +859,6 @@ class Map{
 
         bool is_reachable(State state, Pos pos1, Pos pos2){
             
-            // fprintf(stderr, "\n[is_reachable()]:\n\n"); 
 
             char* renderedMap = new char[fileLen];
             render_boxPos(renderedMap, state.boxPos);  
@@ -884,6 +898,8 @@ class Map{
                 //     print_state(tmpSt);                    
                 // }
 
+
+                
                 return true;
             }
             else{
@@ -903,8 +919,6 @@ class Map{
                 //     tmpSt.col = pos2.col;
                 //     print_state(tmpSt);             
                 // }
-
-
 
                 return false;
             }
@@ -1043,10 +1057,10 @@ class Map{
             }
             else if(fcol == tcol){
                 if(frow - trow == 1){
-                    *dir = DOWN;
+                    *dir = UP;
                 }
                 else if(trow - frow == 1){
-                    *dir = UP;
+                    *dir = DOWN;
                 }
                 else{
                     fprintf(stderr, "\n[infer_local_dir()] Invalid input, not adjacent row's:\n\n");
@@ -1099,10 +1113,11 @@ class Solver{
             recover_steps(doneState, doneAction);
             output_steps();
         }
+        probe_print_stat();
     }
 
     void output_steps(){
-        for(int i = 0; i < stepsOfst; i++){
+        for(int i = stepsOfst - 1; i >= 0; i--){
             printf("%c", stepsBuf[i]);
         }
         printf("\n");
@@ -1110,7 +1125,7 @@ class Solver{
 
     void recover_steps(State doneState, Action doneAction){
 
-        stepsBufSize = 256;
+        stepsBufSize = 1024;
         stepsBuf = new char[stepsBufSize];
         stepsOfst = 0;
 
@@ -1138,6 +1153,30 @@ class Solver{
 
     }
 
+    // void test_get_steps(boxPos_t boxPos, Pos fromPos, Pos toPos, list<Dir> steps){
+
+    //     fprintf(stderr, "\n[test_get_steps()]: print map & steps: \n\n");
+    //     char* debugMap = new char[map->fileLen];
+    //     map->render_boxPos(debugMap, boxPos); 
+
+    //     if(!((fromPos.row == toPos.row)&&(fromPos.col == toPos.col))){
+
+    //         map->safe_place_object(debugMap, fromPos, 'o');
+    //         map->safe_place_object(debugMap, toPos, 'o');
+    //         map->print_map(debugMap);
+
+    //     }
+
+    //     fprintf(stderr, "\n");
+
+    //     while (!steps.empty()){
+    //         fprintf(stderr, "%d ", (int)steps.front());
+    //         steps.pop_front();
+    //     }
+
+    //     fprintf(stderr, "\n\n");
+    // }
+
     
     void add_intermediate_steps(State prevState, State rvrsState){
         
@@ -1147,6 +1186,7 @@ class Solver{
         list<Dir> steps;
 
         map->get_steps(prevState.boxPos, fromPos, toPos, &steps);
+        // test_get_steps(prevState.boxPos, fromPos, toPos, steps);
 
         while (!steps.empty()){
             add_one_step(steps.front());
@@ -1173,11 +1213,26 @@ class Solver{
 
         // get probePos
         probeAction = vstdStTbl[rvrsState.boxPos];
+
+        // Terminating condition. Initial state has no action.
+        if((probeAction.row == MAP_COORD_RSRV) && (probeAction.row == MAP_COORD_RSRV)) return false;
+
         map->move_by_action(probeAction, &probePos);
+
 
         // See whether rvrsPos and probePos are mutually reachable
         if(map->is_reachable(rvrsState, rvrsPos, probePos)){
+
             
+            // fprintf(stderr, "\n[find_vstd_prevStateAction()]: is reachable. print pos & map: \n\n");
+            // print_pos(rvrsPos); 
+            // print_pos(probePos); 
+            // char* debugMap = new char[map->fileLen];
+            // map->render_boxPos(debugMap, rvrsState.boxPos); 
+            // map->safe_place_object(debugMap, rvrsPos, 'o');
+            // map->safe_place_object(debugMap, probePos, 'o');
+            // map->print_map(debugMap);
+
             prevState->boxPos = rvrsState.boxPos;
             prevState->row = probePos.row;
             prevState->col = probePos.col;
@@ -1185,7 +1240,7 @@ class Solver{
             *prevAction = probeAction;
             return true;
         }
-        
+
 
 
         // - Not in vstdClidStTbl.
@@ -1226,9 +1281,11 @@ class Solver{
 
     void add_one_step(Dir dir){
 
+        probe__add_one_step__calling_count++;
+
         if(stepsOfst >= stepsBufSize){
             fprintf(stderr, "\n[add_one_step()] stepsBuf[] overflowed:\n\n");
-            exit(-1);
+            terminate(-1);
         }
 
         if(dir == UP) stepsBuf[stepsOfst] = 'W';
@@ -1253,6 +1310,10 @@ class Solver{
         list<Action> action_list;
 
         nextStateQueue.push(map->get_state());
+
+        curAction.row = MAP_COORD_RSRV;
+        curAction.col = MAP_COORD_RSRV;
+        add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
         
 
         while (!nextStateQueue.empty()) {
@@ -1261,8 +1322,6 @@ class Solver{
 
             state = nextStateQueue.front();
             nextStateQueue.pop();
-
-            // add_visited_state(&vstdStTbl, &vstdClidStTbl, state);    
 
             map->get_available_actions(state, &action_list); 
 
@@ -1285,9 +1344,6 @@ class Solver{
 
                     fprintf(stderr, "\n[explore()]: done!\n\n"); 
                     map->print_state(nextState);
-
-                    fprintf(stderr, "\n\n[explore()]: Print stat:");
-                    probe_print_stat();
 
                     return true;
                 } 
@@ -1459,6 +1515,7 @@ int main(int argc, char** argv) {
     probe_vstdCount = 0;
     probe_vstdClidCount = 0;
     probe_nextStateQueue_max_size = 0;
+    probe__add_one_step__calling_count = 0;
 
     Solver solver(argv[1]);
     
