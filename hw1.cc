@@ -15,6 +15,9 @@ using namespace std;
 
 
 
+
+
+
 struct State{
     bitset<64> boxPos;
     unsigned char row, col;
@@ -362,6 +365,7 @@ class Map{
             fprintf(stderr, "\n[get_available_actions()] initial map to find available action:\n\n"); 
             print_state(state);
 
+            exit(-1);
 
             queue<Pos> nextPosQueue;
             unordered_map<poskey_t, bool> vstdPosTbl;
@@ -946,7 +950,7 @@ class Solver{
 
             add_visited_state(&vstdStTbl, &vstdClidStTbl, state);    
 
-            map->get_available_actions(state, &action_list); // problem?
+            map->get_available_actions(state, &action_list); 
     
 
 
