@@ -875,14 +875,14 @@ class Map{
         }
 
 
-        void find_rvrsState(State curState, State* rvrsState){
+        void generate_rvrsState(State curState, Action curAction, State* rvrsState){
 
             char* renderedMap = new char[fileLen];
             render_boxPos(renderedMap, curState.boxPos); 
 
             Pos ocurPos, xcurPos, oprevPos, xprevPos;
             
-            int dir = (int)curState.dir;
+            int dir = (int)curAction.dir;
             int opstDir = (dir + 2)%4; 
 
             ocurPos.row = curState.row;
@@ -901,6 +901,15 @@ class Map{
 
         }
 
+
+        void move_by_action(Action action, Pos* pos){
+
+            Pos curPos;
+            curPos.row = action.row;
+            curPos.col = action.col;
+            move(curPos, action.dir, pos);      
+
+        }
 
         char *map;
         // char *renderedMap;
@@ -929,62 +938,78 @@ class Solver{
         map->print_map(map->map);
 
         State doneState;
-        if(explore(&doneState)){
-            recover_steps(doneState);
+        Action doneAction;
+        if(explore(&doneState, &doneAction)){
+            recover_steps(doneState, doneAction);
         }
     }
 
 
-    void recover_steps(State doneState){
+    void recover_steps(State doneState, Action doneAction){
 
         stepsBufSize = 256;
         stepsBuf = new char[stepsBufSize];
         stepsOfst = 0;
 
         State prevState, curState, rvrsState;
+        Action prevAction, curAction;
         int dir, opstDir;
 
-        curState = doneState;
-        add_one_step(curState.dir);
-        find_rvrsState(curState, &rvrsState); // get prev boxPos and player pos.
-        find_vstd_prevState(rvrsState, &prevState); // find state with matching boxPos and player pos in vstdStTbl.          
-        
-        while(prevState){
-            add_intermediate_steps(prevState, curState);
-            curState = prevState;
-            add_one_step(curState.dir);
 
-            find_rvrsState(curState, &rvrsState); // get prev boxPos and player pos.
-            find_vstd_prevState(rvrsState, &prevState); // find state with matching boxPos and player pos in vstdStTbl.          
+        curState = doneState;
+        curAction = doneAction;
+        add_one_step(curAction.dir);
+        generate_rvrsState(curState, curAction, &rvrsState); // get prev boxPos and player pos.
+        // add_intermediate_steps(rvrsState, curState);
+
+        while(find_vstd_prevStateAction(rvrsState, &prevState, &prevAction)){
+            
+            add_intermediate_steps(prevState, curState);
+
+            curState = prevState;
+            curAction = prevAction;
+            add_one_step(curAction.dir);
+            generate_rvrsState(curState, curAction, &rvrsState); // get prev boxPos and player pos.
+            // add_intermediate_steps(prevState, curState);
         }
 
     }
 
 
-    void find_vstd_prevState(State rvrsState, State* prevState){
+    bool find_vstd_prevAction(State rvrsState, State* prevState, Action* prevAction){
         
-        if(!is_in_vstdStTbl(&vstdStTbl, rvrsState.boxPos)){
-            prevState = NULL;
-            return;
-        }
+        if(!is_in_vstdStTbl(&vstdStTbl, rvrsState.boxPos)){return false;}
 
 
-        Pos rvrsPos, prevPos;
+        Pos rvrsPos, prevPos, probePos;
+        Action probeAction;
 
+        // get rvrsPos
         rvrsPos.row = rvrsState.row;
         rvrsPos.col = rvrsState.col;
 
-        prevPos = vstdStTbl[rvrsState.boxPos];
+        // get probePos
+        probeAction = vstdStTbl[rvrsState.boxPos];
+        map->move_by_action(probeAction, &probePos);
 
-        prevPos
+        // See whether rvrsPos and probePos are mutually reachable
+        if(map->is_reachable(rvrsState, rvrsPos, probePos)){
+            
+            prevState->boxPos = rvrsState.boxPos;
+            prevState->row = probePos.row;
+            prevState->col = probePos.col;
 
-        if(map->is_reachable(rvrsState, rvrsPos, prevPos)) 
+            *prevAction = probeAction;
+            return true;
+        }
+
+        
 
     }
 
 
-    void find_rvrsState(State curState, State* rvrsState){
-        map->find_rvrsState(curState, &rvrsState);
+    void generate_rvrsState(State curState, Action curAction, State* rvrsState){
+        map->generate_rvrsState(curState, curAction, &rvrsState);
     }
 
 
@@ -1010,7 +1035,7 @@ class Solver{
 
 
 
-    bool explore(State* doneState){
+    bool explore(State* doneState, Action* doneAction){
         
         State state, nextState;
         Action curAction;
@@ -1045,6 +1070,7 @@ class Solver{
                 if(map->is_done(nextState)){
 
                     *doneState = nextState;
+                    *doneAction = curAction;
 
                     fprintf(stderr, "\n[explore()]: done!\n\n"); 
                     map->print_state(nextState);
