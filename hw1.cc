@@ -43,14 +43,30 @@ struct State{
     unsigned char row, col;
 };
 
+
 struct Pos{
     unsigned char row, col;
 };
 
+
 typedef unsigned short poskey_t;
+typedef unsigned char coord_t;
+
 
 unsigned short pos2key(Pos pos){    
     return ((((unsigned short)pos.row) << 8) | ((unsigned short)pos.col));
+}
+
+
+Pos key2pos(poskey_t key){    
+
+    Pos pos;
+    poskey_t mask = 0xff;
+    
+    pos.col = key & mask;
+    pos.row = (key >> 8) & mask;
+
+    return pos;
 }
 
 
@@ -925,7 +941,7 @@ class Map{
 
 
 
-        bool get_steps(State state, Pos fromPos, Pos toPos){
+        bool get_steps(State state, Pos fromPos, Pos toPos, queue<Dir>* steps){
     
             char* renderedMap = new char[fileLen];
             render_boxPos(renderedMap, state.boxPos);
@@ -957,14 +973,77 @@ class Map{
             }
 
 
-
             if(is_pos_visited(&vstdPosTbl, toPos)){
                 
-                poskey_t key = vstdPosTbl[pos2key(toPos)];
+                Pos curPos, prevPos;
+                Dir step;
+                poskey_t prevPoskey, curPosKey, nullPosKey = ((MAP_COORD_RSRV << 8) | MAP_COORD_RSRV);
+                
 
+                curPos = toPos;
+                curPosKey = pos2key(curPos);
+                prevPoskey = vstdPosTbl[curPosKey]
+
+                while(prevPoskey != nullPosKey){
+                    prevPos = key2pos(prevPoskey);
+
+                    infer_local_dir(prevPos, curPos, &step);
+                    steps.push(step);
+
+                    curPos = prevPos;
+                    curPosKey = prevPoskey;
+                    prevPoskey = vstdPosTbl[curPosKey]
+                }
+                
                 return true;
             }
+            else{
+                return false;
+            }
         }
+
+
+        void infer_local_dir(Pos fPos, Pos tPos, Dir* dir){
+
+            coord_t frow, fcol, trow, tcol;
+
+            frow = fPos.row;
+            fcol = fPos.col;
+
+            trow = tPos.row;
+            tcol = tPos.col;
+            
+            if(frow = trow){
+                if(fcol - tcol == 1){
+                    *dir = LEFT;
+                }
+                else if(tcol - fcol == 1){
+                    *dir = RIGHT;
+                }
+                else{
+                    fprintf(stderr, "\n[infer_local_dir()] Invalid input, not adjacent pos's:\n\n");
+                    exit(-1);                    
+                }
+            }
+            else if(fcol == tcol){
+                if(frow - trow == 1){
+                    *dir = DOWN;
+                }
+                else if(trow - frow == 1){
+                    *dir = UP;
+                }
+                else{
+                    fprintf(stderr, "\n[infer_local_dir()] Invalid input, not adjacent pos's:\n\n");
+                    exit(-1);                    
+                }
+            }
+            else{
+                fprintf(stderr, "\n[infer_local_dir()] Invalid input, pos's not on same row and col:\n\n");
+                exit(-1);
+            }
+        }
+
+
 
         bool is_pos_visited(unordered_map<poskey_t, poskey_t> *vstdPosTbl, Pos pos){
             return !(vstdPosTbl->find(pos2key(pos)) == vstdPosTbl->end());
