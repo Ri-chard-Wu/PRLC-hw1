@@ -38,6 +38,12 @@ void probe_print_stat(){
 }
 
 
+typedef unsigned short poskey_t;
+typedef unsigned char coord_t;
+typedef bitset<64> boxPos_t;
+
+
+
 struct State{
     bitset<64> boxPos;
     unsigned char row, col;
@@ -48,9 +54,6 @@ struct Pos{
     unsigned char row, col;
 };
 
-
-typedef unsigned short poskey_t;
-typedef unsigned char coord_t;
 
 
 unsigned short pos2key(Pos pos){    
@@ -63,8 +66,8 @@ Pos key2pos(poskey_t key){
     Pos pos;
     poskey_t mask = 0xff;
     
-    pos.col = key & mask;
-    pos.row = (key >> 8) & mask;
+    pos.col = (char)(key & mask);
+    pos.row = (char)((key >> 8) & mask);
 
     return pos;
 }
@@ -941,10 +944,10 @@ class Map{
 
 
 
-        bool get_steps(State state, Pos fromPos, Pos toPos, queue<Dir>* steps){
+        bool get_steps(boxPos_t boxPos, Pos fromPos, Pos toPos, list<Dir>* steps){
     
             char* renderedMap = new char[fileLen];
-            render_boxPos(renderedMap, state.boxPos);
+            render_boxPos(renderedMap, boxPos);
 
             queue<Pos> nextPosQueue;
             unordered_map<poskey_t, poskey_t> vstdPosTbl;
@@ -988,7 +991,7 @@ class Map{
                     prevPos = key2pos(prevPoskey);
 
                     infer_local_dir(prevPos, curPos, &step);
-                    steps.push(step);
+                    steps.push_front(step);
 
                     curPos = prevPos;
                     curPosKey = prevPoskey;
@@ -1117,6 +1120,18 @@ class Solver{
 
     
     void add_intermediate_steps(State prevState, State rvrsState){
+        
+        Pos fromPos{.row{prevState.row}, .col{prevState.col}};
+        Pos toPos{.row{rvrsState.row}, .col{rvrsState.col}};
+
+        list<Dir> steps;
+
+        map->get_steps(prevState.boxPos, fromPos, toPos, &steps);
+
+        while (!steps.empty()){
+            add_one_step(steps.front());
+            steps.pop_front();
+        }
 
     }
 
