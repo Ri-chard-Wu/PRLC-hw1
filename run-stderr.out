@@ -1,23 +1,45 @@
-argv[1]: ./samples/02.txt
-#######
-#    .#
-#     #
-# xx  #
-#O    #
-#######
+argv[1]: ./samples/06.txt
+########
+##  X  #
+##  o  #
+###x#.##
+##  #  #
+## x#. #
+##  #  #
+## ## ##
+#  X X #
+#   X  #
+###   ##
+########
 
-fileLen: 48
-fileLineNum: 6
-spaceNum: 20
-#######
-#    .#
-#     #
-#     #
-#     #
-#######
+fileLen: 108
+fileLineNum: 12
+spaceNum: 41
+########
+##  .  #
+##     #
+### #.##
+##  #  #
+##  #. #
+##  #  #
+## ## ##
+#  . . #
+#   .  #
+###   ##
+########
 
 
+srun: interrupt (one more within 1 sec to abort)
+srun: step:4257491.0 task 0: running
+srun: sending Ctrl-C to job 4257491.0
 
-[explore()]:
 
-Fatal glibc error: malloc assertion failure in sysmalloc: (old_top == initial_top (av) && old_size == 0) || ((unsigned long) (old_size) >= MINSIZE && prev_inuse (old_top) && ((unsigned long) old_end & (pagesize - 1)) == 0)
+Terminate program. Print stat:
+
+probe_vstdCount: 339646
+probe_nextStateQueue_max_size: 906673
+
+
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 4257491.0 ON apollo32 CANCELLED AT 2023-03-11T10:57:26 ***
+srun: error: apollo32: task 0: Exited with exit code 2
