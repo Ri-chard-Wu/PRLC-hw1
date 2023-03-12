@@ -1151,6 +1151,9 @@ class Solver{
     }
 
 
+    pthread_mutex_t mutex_actCheckAdd = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t cond_cons_actCheckAdd = PTHREAD_COND_INITIALIZER; 
+    pthread_cond_t cond_prod_actCheckAdd = PTHREAD_COND_INITIALIZER; 
 
 
     bool explore(State* doneState, Action* doneAction){
@@ -1172,25 +1175,74 @@ class Solver{
 
             state = nextStateQueue.front();
             nextStateQueue.pop();
-
-
-
   
+
+
+
+            pthread_mutex_lock(&mutex_actCheckAdd);
+
+
             map->get_available_actions(state, &action_list); // <- dt: 10 ~ 20 us, freq: 1/20
 
-      
 
-            while(!action_list.empty()){
+            pthread_mutex_unlock(&mutex_actCheckAdd);
+
+            pthread_cond_signal(&cond_cons_actCheckAdd);
+            pthread_cond_wait(&cond_prod_actCheckAdd, &mutex_actCheckAdd);
+
+
+
+
+            /* while loop moved to actCheckAdd().*/
+
+
+
+        return false;
+    }
+
+
+ 
+
+    static void * thrdEnt_actCheckAdd(void *argPtr) {
+
+        entryArg *entryPtr = ((entryArg *)argPtr);
+        
+        int base = entryPtr->base;
+        int threadId = entryPtr->threadId;
+
+        entryPtr->objPtr->thrd_actCheckAdd(base, threadId); 
+
+        return NULL;
+    }
+
+
+
+    void thrd_actCheckAdd(int base, int threadId){
+
+            Action curAction;
+            State nextState;
+
+            // var extrn to while: state, 
+            while(1){ // run while in threads. thread is idle when list empty.
                 
-                curAction = action_list.front();
-                action_list.pop_front();
+
+                pthread_mutex_lock(&mutex_actCheckAdd);
+
+                while(action_list.empty()){
+                    pthread_cond_wait(&cond_cons_actCheckAdd, &mutex_actCheckAdd);
+                }
+                
+                curAction = action_list.front();  
+                action_list.pop_front();          
+                
+                pthread_mutex_unlock(&mutex_actCheckAdd);
 
 
 
-                map->act(state, curAction, &nextState); // <- 
 
-     
-                    
+
+
+                map->act(state, curAction, &nextState);    
                 
                 if(map->is_done(nextState)){
                     *doneState = nextState;
@@ -1200,25 +1252,17 @@ class Solver{
                     return true;
                 } 
 
-
+                // vstdStTbl, vstdClidStTbl: just to read -> no need to lock.
                 isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState); // <- dt: 10 ~ 20 us, freq: 9/20
 
-                     
-
                 if(!isStVstd){ 
-
-             
-                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); // <-  
-                      
-                    nextStateQueue.push(nextState);
+                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); // lock  
+                    nextStateQueue.push(nextState);  // lock
                 }    
             }
-
         }
 
-        return false;
     }
-
 
 
     void add_visited_state(unordered_map<bitset<64>, Action> *vstdStTbl, 
