@@ -8,7 +8,9 @@
 #include <queue>
 #include <unordered_map>
 #include <signal.h>
+#include <chrono>
 using namespace std;
+using namespace std::chrono;
 
 
 
@@ -1117,14 +1119,7 @@ class Map{
     }
 
 
-
-    // bool is_pos_visited(unordered_map<poskey_t, poskey_t> *vstdPosTbl, Pos pos){
-    //     return !(vstdPosTbl->find(pos2key(pos)) == vstdPosTbl->end());
-    // }        
-
-
     char *map;
-    // char *renderedMap;
 
     int *rowEnds;
     int *rowBegins;
@@ -1146,12 +1141,6 @@ class Solver{
         map = new Map(filename);
         map->print_map(map->map);
 
-        // fprintf(stderr, "a\n");
-        // State state = map->get_state();
-        // cerr<<"state.boxPos: "<<state.boxPos<<"\n";
-        // fprintf(stderr, "b\n");
-
-
         State doneState;
         Action doneAction;
         if(explore(&doneState, &doneAction)){
@@ -1162,25 +1151,20 @@ class Solver{
     }
 
 
+
+
     bool explore(State* doneState, Action* doneAction){
-        
+
+        bool isStVstd;
         State state, nextState;
         Action curAction;
         list<Action> action_list;
-
-        // state = map->get_state();
-        // cerr<<"state.boxPos: "<<state.boxPos<<"\n";
-
         nextStateQueue.push(map->get_state());
 
-        
 
         curAction.row = MAP_COORD_RSRV;
         curAction.col = MAP_COORD_RSRV;
-        // generate_random_init_action(&curAction, map->get_state());
         add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
-        
-        
 
         while (!nextStateQueue.empty()) {
             probe_vstdCount++;
@@ -1189,38 +1173,75 @@ class Solver{
             state = nextStateQueue.front();
             nextStateQueue.pop();
 
+
+
+            auto start = high_resolution_clock::now();
+
             map->get_available_actions(state, &action_list); 
 
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            fprintf(stderr, "get_available_actions(): %d us\n", duration.count());
 
-            // fprintf(stderr, "\n[explore()] return from get_available_actions(). print action list:\n\n");
+
+
+            // fprintf(stderr, "\n[explore()]: print_action_list:\n\n"); 
             // print_action_list(action_list);
+
+
 
             while(!action_list.empty()){
                 
                 curAction = action_list.front();
                 action_list.pop_front();
 
-                map->act(state, curAction, &nextState);
+
+
+                start = high_resolution_clock::now();
+
+                map->act(state, curAction, &nextState); 
+
+                stop = high_resolution_clock::now();
+                duration = duration_cast<microseconds>(stop - start);
+                fprintf(stderr, "   act(): %d us\n", duration.count());
+                
+                
                 
                 
                 if(map->is_done(nextState)){
-
                     *doneState = nextState;
                     *doneAction = curAction;
-
                     fprintf(stderr, "\n[explore()]: done!\n\n"); 
                     map->print_state(nextState);
-
                     return true;
                 } 
 
-                if(!is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState)){ 
-                    // fprintf(stderr, "\n[explore()] nextState not visited, will be add to queue:\n\n");
-                    // map->print_state(nextState);
-                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction);    
+
+                start = high_resolution_clock::now();
+
+                isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState);
+
+                stop = high_resolution_clock::now();
+                duration = duration_cast<microseconds>(stop - start);
+                fprintf(stderr, "   is_state_visited(): %d us\n", duration.count());
+                                
+
+                if(!isStVstd){ 
+
+                    start = high_resolution_clock::now();
+
+                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction);  
+
+                    stop = high_resolution_clock::now();
+                    duration = duration_cast<microseconds>(stop - start);
+                    fprintf(stderr, "       add_visited_state(): %d us\n", duration.count());
+                            
+                            
+                      
                     nextStateQueue.push(nextState);
                 }    
             }
+
         }
 
         return false;
@@ -1266,6 +1287,8 @@ class Solver{
     }
 
 
+
+
     bool is_state_visited(unordered_map<bitset<64>, Action> *vstdStTbl, 
                     unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
 
@@ -1275,12 +1298,16 @@ class Solver{
         if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
 
 
-        // Pos visitedPos = (*vstdStTbl)[state.boxPos];
+
+
         Pos vstdPos, preVstdPos;
         Action preVstdAction = (*vstdStTbl)[state.boxPos];
-        preVstdPos.row = preVstdAction.row;
-        preVstdPos.col = preVstdAction.col;
-        map->move(preVstdPos, preVstdAction.dir, &vstdPos);
+        
+        map->move_by_action(preVstdAction, &vstdPos);
+
+        // preVstdPos.row = preVstdAction.row;
+        // preVstdPos.col = preVstdAction.col;
+        // map->move(preVstdPos, preVstdAction.dir, &vstdPos);
 
         Pos curPos{.row{state.row}, .col{state.col}};
 
@@ -1290,8 +1317,16 @@ class Solver{
         if(map->is_reachable(state, curPos, vstdPos)){return true;}
         
 
+
+
+
+
+
         // key not found -> haven't been visited.
         if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){return false;}
+
+
+
 
 
   
@@ -1299,11 +1334,12 @@ class Solver{
 
         while(cur_ptr){
 
-            // vstdPos = cur_ptr->pos;
             Action preVstdAction = cur_ptr->action;
-            preVstdPos.row = preVstdAction.row;
-            preVstdPos.col = preVstdAction.col;
-            map->move(preVstdPos, preVstdAction.dir, &vstdPos);
+            map->move_by_action(preVstdAction, &vstdPos);
+            
+            // preVstdPos.row = preVstdAction.row;
+            // preVstdPos.col = preVstdAction.col;
+            // map->move(preVstdPos, preVstdAction.dir, &vstdPos);
 
             // Have same box positions, and mutually 
                 // reachable player positions *with other collided pos*. 
@@ -1314,6 +1350,8 @@ class Solver{
 
         return false;
     }
+
+
     
 
     bool is_in_vstdClidStTbl(unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, 
