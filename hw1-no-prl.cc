@@ -1175,10 +1175,20 @@ class Solver{
 
 
 
-  
-            map->get_available_actions(state, &action_list); // <- dt: 10 ~ 20 us, freq: 1/20
+            auto start = high_resolution_clock::now();
 
-      
+            map->get_available_actions(state, &action_list); 
+
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            fprintf(stderr, "get_available_actions(): %d us\n", duration.count());
+
+
+
+            // fprintf(stderr, "\n[explore()]: print_action_list:\n\n"); 
+            // print_action_list(action_list);
+
+
 
             while(!action_list.empty()){
                 
@@ -1187,10 +1197,16 @@ class Solver{
 
 
 
-                map->act(state, curAction, &nextState); // <- 
+                start = high_resolution_clock::now();
 
-     
-                    
+                map->act(state, curAction, &nextState); 
+
+                stop = high_resolution_clock::now();
+                duration = duration_cast<microseconds>(stop - start);
+                fprintf(stderr, "   act(): %d us\n", duration.count());
+                
+                
+                
                 
                 if(map->is_done(nextState)){
                     *doneState = nextState;
@@ -1201,14 +1217,26 @@ class Solver{
                 } 
 
 
-                isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState); // <- dt: 10 ~ 20 us, freq: 9/20
+                start = high_resolution_clock::now();
 
-                     
+                isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState);
+
+                stop = high_resolution_clock::now();
+                duration = duration_cast<microseconds>(stop - start);
+                fprintf(stderr, "   is_state_visited(): %d us\n", duration.count());
+                                
 
                 if(!isStVstd){ 
 
-             
-                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); // <-  
+                    start = high_resolution_clock::now();
+
+                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction);  
+
+                    stop = high_resolution_clock::now();
+                    duration = duration_cast<microseconds>(stop - start);
+                    fprintf(stderr, "       add_visited_state(): %d us\n", duration.count());
+                            
+                            
                       
                     nextStateQueue.push(nextState);
                 }    
