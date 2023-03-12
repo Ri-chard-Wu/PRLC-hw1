@@ -55,6 +55,12 @@ typedef unsigned short poskey_t;
 typedef unsigned char coord_t;
 typedef bitset<64> boxPos_t;
 
+enum Dir{
+    UP,
+    RIGHT,
+    DOWN,
+    LEFT
+};
 
 
 struct State{
@@ -95,12 +101,6 @@ Pos key2pos(poskey_t key){
 }
 
 
-enum Dir{
-    UP,
-    RIGHT,
-    DOWN,
-    LEFT
-};
 
 
 struct ActionNode{
@@ -1146,97 +1146,185 @@ class Solver{
         map = new Map(filename);
         map->print_map(map->map);
         
+        done = false;
         start_thread();
+        join_thread();
         
-        while(!done);
+        // while(!done);
+
         
-        fprintf(stderr, "\n[Solver()] done!\n\n"); 
-        map->print_state(doneState);  
+        // fprintf(stderr, "\n[Solver()] done!\n\n"); 
+        // map->print_state(doneState);  
         
         recover_steps();
         output_steps();
 
         probe_print_stat();
-        join_thread();
+        
     }
 
-
-
-
+    struct entryArg{
+        Solver* objPtr;
+        int threadId;
+    }
 
     void start_thread()
     {
         int ret;
-        threads = new pthread_t[2];
+        entryArg* argPtr;
 
-        ret = pthread_create(&threads[0], NULL, thrd_prod_sa_list_entry, (void *)this);
-        if(ret != 0) printf("create thread 0 failed.\n");
+        nxStThrdNum = 1;
 
-        ret = pthread_create(&threads[1], NULL, thrd_cons_sa_list_entry, (void *)this);
-        if(ret != 0) printf("create thread 1 failed.\n");
+
+
+        mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER;     
+        cond_cons_nextStateQueue = PTHREAD_COND_INITIALIZER; 
+
+        nxStThrds = new pthread_t[nxStThrdNum];
+        for(int i=0;i<saThrdNum;i++){
+            argPtr = new entryArg;
+            argPtr->objPtr = this;
+            argPtr->threadId = i;
+
+            ret = pthread_create(&nxStThrds[i], NULL, thrd_prod_sa_list_entry, (void *)argPtr);
+            if(ret != 0) printf("create thread failed.\n");
+        }
+
+        
+
+        saDstbThrdNum = 3;
+        saDstbThrds = new pthread_t[saDstbThrdNum];
+        for(int i=0; i < saDstbThrdNum; i++){
+            argPtr = new entryArg;
+            argPtr->objPtr = this;
+            argPtr->threadId = i;
+
+            ret = pthread_create(&saThrds[i], NULL, thrd_cons_sa_list_entry, (void *)argPtr);
+            if(ret != 0) printf("create thread failed.\n");
+        }
+
+
+
+        cond_cons_sa_list = PTHREAD_COND_INITIALIZER; 
+        mutex_sa_lists = new pthread_mutex_t[saThrdNum];
+        for(int i=0;i<saThrdNum;i++)mutex_sa_lists[i] = PTHREAD_COND_INITIALIZER;
+    
+        saThrdNum = 3;
+        sa_list = new list<SA>[saThrdNum];
+        saThrds = new pthread_t[saThrdNum];
+        for(int i=0;i<saThrdNum;i++){
+            argPtr = new entryArg;
+            argPtr->objPtr = this;
+            argPtr->threadId = i;
+
+            ret = pthread_create(&saThrds[i], NULL, thrd_cons_sa_list_entry, (void *)argPtr);
+            if(ret != 0) printf("create thread failed.\n");
+        }
+
     }
 
     void join_thread()
     {
-        for (int i = 0; i < 2; i++){
-            pthread_join(threads[i], NULL);
-        }
+        for (int i = 0; i < nxStThrdNum; i++){
+            pthread_join(nxStThrds[i], NULL);
+        }        
+
+        for (int i = 0; i < saThrdNum; i++){
+            pthread_join(saThrds[i], NULL);
+        }  
+
+        for (int i = 0; i < saDstbThrdNum; i++){
+            pthread_join(saDstbThrds[i], NULL);
+        }  
     }
 
 
     static void * thrd_prod_sa_list_entry(void *objPtr) {
-        ((Solver *)objPtr)->thrd_prod_sa_list();
+        // ((Solver *)objPtr)->thrd_prod_sa_list();
+
+        entryArg *argPtr = (entryArg *)arg;
+
+        int threadId = argPtr->threadId;
+        Solver *objPtr = (Solver *)argPtr->objPtr;
+        objPtr->thrd_prod_sa_list(threadId);
+        
         return NULL;
     }
 
-    static void * thrd_cons_sa_list_entry(void *objPtr) {
-        ((Solver *)objPtr)->thrd_cons_sa_list();
+    static void * thrd_cons_sa_list_entry(void *arg) {
+        entryArg *argPtr = (entryArg *)arg;
+
+        int threadId = argPtr->threadId;
+        Solver *objPtr = (Solver *)argPtr->objPtr;
+        objPtr->thrd_cons_sa_list(threadId);
+        
         return NULL;
     }
 
+    static void * thrd_sa_distributer_entry(void *arg) {
+        entryArg *argPtr = (entryArg *)arg;
 
-    void thrd_prod_sa_list(){
-    
+        int threadId = argPtr->threadId;
+        Solver *objPtr = (Solver *)argPtr->objPtr;
+        objPtr->thrd_sa_distributer(threadId);
+
+        return NULL;
+    }
+
+    void thrd_sa_distributer(int threadId){
+
+    }
+
+
+    void thrd_prod_sa_list(int threadId){
+        
         list<Action> action_list;
         State state;
         SA sa;
+        bool has_new_nextState_data;
         
         while(!done){
+            
+            has_new_nextState_data = false;
 
             pthread_mutex_lock(&mutex_nextStateQueue);
-            while(nextStateQueue.empty()){
-                pthread_cond_wait(&cond_cons_nextStateQueue, &mutex_nextStateQueue);
-            } 
-            state = nextStateQueue.front();
-            nextStateQueue.pop();
-            pthread_mutex_unlock(&mutex_nextStateQueue);
-
-
-
-            pthread_mutex_lock(&mutex_sa_list);
-            map->get_available_actions(state, &action_list); // <- dt: 10 ~ 20 us, freq: 1/20
-            sa.state = state;
-            while(!action_list.empty()){
-                sa.action = action_list.front();
-                action_list.pop_front();
-                sa_list.push(sa);
+            if(!nextStateQueue.empty()){
+                state = nextStateQueue.front();
+                nextStateQueue.pop();
+                has_new_nextState_data = true;
             }
-            pthread_mutex_unlock(&mutex_sa_list);
-            pthread_cond_signal(&cond_cons_sa_list); // wake up cons to consume action list. 
+            pthread_mutex_unlock(&mutex_nextStateQueue);
+            
+
+            if(has_new_nextState_data){
+                pthread_mutex_lock(&mutex_sa_lists);
+                map->get_available_actions(state, &action_list); 
+                // sa.state = state;
+                // while(!action_list.empty()){
+                //     sa.action = action_list.front();
+                //     action_list.pop_front();
+
+                //     sa_list.push_back(sa);
+                // }
+                thrd_sa_distributer(state, &action_list);
+                pthread_mutex_unlock(&mutex_sa_lists);
+            }
         }
     }
 
 
-    void thrd_cons_sa_list(){
+    void thrd_cons_sa_list(int threadId){
 
-        bool isStVstd;
+        bool isStVstd, has_new_sa_data;
         Action curAction;
         SA curSA;
         State nextState, curState;
 
+
         pthread_mutex_lock(&mutex_nextStateQueue);
         nextStateQueue.push(map->get_state());  
         pthread_mutex_unlock(&mutex_nextStateQueue);
+
 
         curAction.row = MAP_COORD_RSRV;
         curAction.col = MAP_COORD_RSRV;
@@ -1244,36 +1332,44 @@ class Solver{
 
         while(1){ 
             
-            pthread_mutex_lock(&mutex_sa_list);
-            while(sa_list.empty()){
-                pthread_cond_wait(&cond_cons_sa_list, &mutex_sa_list);
+            has_new_sa_data = false;
+
+            pthread_mutex_lock(&mutex_sa_lists[threadId]);
+            if(!sa_list.empty()){
+                curSA = sa_list.front(); 
+                sa_list.pop_front();  
+                curAction = curSA.action;
+                curState = curSA.state;
+                has_new_sa_data = true;
             }
-            curSA = sa_list.front(); 
-            sa_list.pop_front();  
-            curAction = curSA.action;
-            curState = curSA.state;
-            pthread_mutex_unlock(&mutex_sa_list);
+            pthread_mutex_unlock(&mutex_sa_lists[threadId]);
 
 
-            map->act(curState, curAction, &nextState);    
+
+            if(has_new_sa_data){
+
+                map->act(curState, curAction, &nextState);    
             
+                if(map->is_done(nextState)){
+                    doneState = nextState;
+                    doneAction = curAction;
+                    done = true;
 
-            if(map->is_done(nextState)){
-                doneState = nextState;
-                doneAction = curAction;
-                done = true;
-                return;      
-            } 
+                    fprintf(stderr, "\n[thrd_cons_sa_list()] done!\n\n"); 
+                    map->print_state(doneState);   
 
-            isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState); 
-            if(!isStVstd){ 
-                add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); 
-                
-                pthread_mutex_lock(&mutex_nextStateQueue);
-                nextStateQueue.push(nextState);  
-                pthread_mutex_unlock(&mutex_nextStateQueue);
-                pthread_cond_signal(&cond_cons_nextStateQueue); 
-            }                   
+                    return;      
+                } 
+
+                isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState); 
+                if(!isStVstd){ 
+                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); 
+                    
+                    pthread_mutex_lock(&mutex_nextStateQueue);
+                    nextStateQueue.push(nextState);  
+                    pthread_mutex_unlock(&mutex_nextStateQueue);
+                }  
+            }
         }
     }
     
@@ -1542,20 +1638,29 @@ class Solver{
 
     Map* map;
 
-    pthread_mutex_t mutex_sa_list = PTHREAD_MUTEX_INITIALIZER;
-    pthread_cond_t cond_cons_sa_list = PTHREAD_COND_INITIALIZER; 
-
-    pthread_mutex_t mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER;     
-    pthread_cond_t cond_cons_nextStateQueue = PTHREAD_COND_INITIALIZER; 
     
+    pthread_mutex_t* mutex_sa_lists;
+    pthread_cond_t cond_cons_sa_list; 
+
+    pthread_mutex_t mutex_nextStateQueue;     
+    pthread_cond_t cond_cons_nextStateQueue; 
 
     bool done;
     State doneState;
     Action doneAction;
 
-    list<SA> sa_list;
+    list<SA>* sa_list;
     
-    pthread_t* threads;
+    int saThrdNum;
+    int nxStThrdNum;
+    int saDstbThrdNum;
+
+    pthread_t* nxStThrds;
+    pthread_t* saThrds;
+    pthread_t* saDstbThrds;
+
+
+
 
 };
 
