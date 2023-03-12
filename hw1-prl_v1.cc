@@ -1149,21 +1149,14 @@ class Solver{
     }
 
 
-    struct SA{
-        State state;
-        Action action;
-    }
+
 
     pthread_mutex_t mutex_local_unvstdSt_queue = PTHREAD_MUTEX_INITIALIZER;
     pthread_mutex_t mutex_done = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_t mutex_sa_list = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_t mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_t mutex_actCheckAdd = PTHREAD_MUTEX_INITIALIZER;
 
-    pthread_cond_t cond_cons_sa_list = PTHREAD_COND_INITIALIZER; 
-    pthread_cond_t cond_prod_sa_list = PTHREAD_COND_INITIALIZER; 
-    pthread_cond_t cond_cons_nextStateQueue = PTHREAD_COND_INITIALIZER; 
-    pthread_cond_t cond_prod_nextStateQueue = PTHREAD_COND_INITIALIZER; 
-
+    pthread_cond_t cond_cons_actCheckAdd = PTHREAD_COND_INITIALIZER; 
+    pthread_cond_t cond_prod_actCheckAdd = PTHREAD_COND_INITIALIZER; 
     pthread_cond_t cond_checkAddLocalUnvstdSt = PTHREAD_COND_INITIALIZER; 
 
     bool done;
@@ -1172,18 +1165,13 @@ class Solver{
 
     queue<State> local_unvstdSt_queue;
 
-    list<SA> sa_list;
 
+    bool explore(){
 
-
-    void thrd_prod_sa_list(){
-
-    
+        bool isStVstd;
+        State state, nextState;
         Action curAction;
         list<Action> action_list;
-        State state;
-        SA sa;
-        
         nextStateQueue.push(map->get_state());
 
 
@@ -1191,41 +1179,43 @@ class Solver{
         curAction.col = MAP_COORD_RSRV;
         add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
 
-        while(1){
+        while (!nextStateQueue.empty()) {
+            probe_vstdCount++;
+            probe_get_nextStateQueue_max_size(nextStateQueue.size());
 
-
-            pthread_mutex_lock(&mutex_nextStateQueue);
-            while(nextStateQueue.empty()){
-                pthread_cond_wait(&cond_prod_nextStateQueue, &mutex_nextStateQueue);
-            } 
             state = nextStateQueue.front();
             nextStateQueue.pop();
-            pthread_mutex_unlock(&mutex_nextStateQueue);
+  
 
 
 
-            pthread_mutex_lock(&mutex_sa_list);
+            pthread_mutex_lock(&mutex_actCheckAdd);
+
+
             map->get_available_actions(state, &action_list); // <- dt: 10 ~ 20 us, freq: 1/20
-            sa.state = state;
-            while(!action_list.empty()){
-                sa.action = action_list.front();
-                action_list.pop_front();
-                sa_list.push(sa);
+
+
+            pthread_mutex_unlock(&mutex_actCheckAdd);
+
+            pthread_cond_signal(&cond_cons_actCheckAdd);
+            pthread_cond_wait(&cond_prod_actCheckAdd, &mutex_actCheckAdd);
+
+
+            pthread_mutex_lock(&mutex_done);
+            if(done){
+                fprintf(stderr, "\n[explore()]: done!\n\n"); 
+                map->print_state(doneState);                
+                return true;
             }
-            pthread_mutex_unlock(&mutex_sa_list);
-            pthread_cond_signal(&cond_cons_sa_list); // wake up cons to consume action list.
-            
-
-            // pthread_cond_wait(&cond_prod_actCheckAdd, &mutex_sa_list);
+            pthread_mutex_unlock(&mutex_done);
 
 
-            // pthread_mutex_lock(&mutex_done);
-            // if(done){
-            //     fprintf(stderr, "\n[explore()]: done!\n\n"); 
-            //     map->print_state(doneState);                
-            //     return true;
-            // }
-            // pthread_mutex_unlock(&mutex_done);
+
+            /* while loop moved to actCheckAdd().*/
+
+
+
+        return false;
     }
 
 
@@ -1245,56 +1235,62 @@ class Solver{
 
 
 
-    void thrd_cons_sa_list(){
+    void thrd_actCheckAdd(int base, int threadId){
 
             bool isStVstd;
             Action curAction;
-            SA curSA;
-            State nextState, curState;
+            State nextState;
 
-            while(1){ 
+            // var extrn to while: state, 
+            while(1){ // run while in threads. thread is idle when list empty.
                 
 
-                pthread_mutex_lock(&mutex_sa_list);
-                while(sa_list.empty()){
-                    pthread_cond_wait(&cond_cons_sa_list, &mutex_sa_list);
+                pthread_mutex_lock(&mutex_actCheckAdd);
+
+                while(action_list.empty()){
+                    pthread_cond_wait(&cond_cons_actCheckAdd, &mutex_actCheckAdd);
                 }
-                curSA = sa_list.front(); 
-                sa_list.pop_front();  
-                curAction = curSA.action;
-                curState = curSA.state;
-                pthread_mutex_unlock(&mutex_sa_list);
+                
+                curAction = action_list.front();  
+                action_list.pop_front();          
+                
+                pthread_mutex_unlock(&mutex_actCheckAdd);
 
 
-                map->act(curState, curAction, &nextState);    
+
+                map->act(state, curAction, &nextState);    
                 
 
                 if(map->is_done(nextState)){
+    
                     pthread_mutex_lock(&mutex_done);
+
                     doneState = nextState;
                     doneAction = curAction;
                     done = true;
+
                     pthread_mutex_unlock(&mutex_done);         
                 } 
 
 
-                
-         
+
                 isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState); 
+                if(!isStVstd){
+                    pthread_mutex_lock(&mutex_local_unvstdSt_queue);
+                    local_unvstdSt_queue.push(nextState);
+                    pthread_mutex_unlock(&mutex_local_unvstdSt_queue);
+                }
+                
+
+
                 if(!isStVstd){ 
-                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); 
-                    
-                    pthread_mutex_lock(&mutex_nextStateQueue);
-                    nextStateQueue.push(nextState);  
-                    pthread_mutex_unlock(&mutex_nextStateQueue);
-
-            		pthread_cond_signal(&cond_prod_nextStateQueue); 
-                }                   
-       
-
+                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); // lock  
+                    nextStateQueue.push(nextState);  // lock
+                }    
             }
         }
     }
+
 
     void thre_checkAddLocalUnvstdSt(){
 
@@ -1302,37 +1298,6 @@ class Solver{
 
 
 
-    bool is_state_visited(unordered_map<bitset<64>, Action> *vstdStTbl, 
-                    unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
-
-
-        if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
-
-
-        Pos vstdPos;
-        Action preVstdAction = (*vstdStTbl)[state.boxPos];
-        map->move_by_action(preVstdAction, &vstdPos);
-        Pos curPos{.row{state.row}, .col{state.col}};
-
-
-        if(map->is_reachable(state, curPos, vstdPos)){return true;}
-        
-
-        if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){return false;}
-
-  
-        ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
-        while(cur_ptr){
-            Action preVstdAction = cur_ptr->action;
-            map->move_by_action(preVstdAction, &vstdPos);
-
-            if(map->is_reachable(state, curPos, vstdPos)){return true;}
-            cur_ptr = cur_ptr->next;
-        }
-
-
-        return false;
-    }
 
 
 
@@ -1381,6 +1346,54 @@ class Solver{
 
 
 
+    bool is_state_visited(unordered_map<bitset<64>, Action> *vstdStTbl, 
+                    unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
+
+
+
+        // key not found -> haven't been visited.
+        if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
+
+
+
+
+        Pos vstdPos;
+        Action preVstdAction = (*vstdStTbl)[state.boxPos];
+        map->move_by_action(preVstdAction, &vstdPos);
+        Pos curPos{.row{state.row}, .col{state.col}};
+
+        // Have same box positions, and mutually 
+            // reachable player positions *with the head* -> deemed visited.
+        if(map->is_reachable(state, curPos, vstdPos)){return true;}
+        
+
+
+
+
+
+
+        // key not found -> haven't been visited.
+        if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){return false;}
+
+
+
+
+
+  
+        ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
+        while(cur_ptr){
+            Action preVstdAction = cur_ptr->action;
+            map->move_by_action(preVstdAction, &vstdPos);
+
+            // Have same box positions, and mutually 
+                // reachable player positions *with other collided pos*. 
+            if(map->is_reachable(state, curPos, vstdPos)){return true;}
+            cur_ptr = cur_ptr->next;
+        }
+
+
+        return false;
+    }
 
 
     
