@@ -24,6 +24,8 @@ unsigned int probe_vstdClidCount;
 int probe_nextStateQueue_max_size;
 int probe__add_one_step__calling_count;
 
+
+
 void probe_get_nextStateQueue_max_size(int queueSize){
     if(queueSize > probe_nextStateQueue_max_size){
         probe_nextStateQueue_max_size = queueSize;
@@ -409,12 +411,20 @@ class Map{
         Pos nextPos;
         Action action;
         nextPosQueue.push(curPos);
+        vstdPosTbl[pos2key(curPos)] = true;
+
+        fprintf(stderr, "\n[get_available_actions()] before while: \n\n"); 
 
         while(!nextPosQueue.empty()){
             
             curPos = nextPosQueue.front();
             nextPosQueue.pop();
-            vstdPosTbl[pos2key(curPos)] = true;
+            
+            fprintf(stderr, "\n[get_available_actions()] in while, print pos: \n\n"); 
+            print_pos(curPos);
+
+            
+            // vstdPosTbl[pos2key(curPos)] = true;
 
             add_local_action(renderedMap, curPos, action_list); // ok
 
@@ -432,6 +442,10 @@ class Map{
     void add_local_action(char* renderedMap, Pos curPos, list<Action>* action_list){
         // - Find out what adjacent boxes can be pushed.
         // - Do nothing if no box is adjacent.
+
+        fprintf(stderr, "\n[add_local_action()]: \n\n"); 
+        print_pos(curPos);
+        
 
         Pos probe_pos;
         char mapObj;
@@ -456,7 +470,8 @@ class Map{
 
                     if(!is_dead_action(renderedMap, action)){
 
-                        // fprintf(stderr, "\n[add_local_action()] is not dead action.\n\n"); 
+                        // fprintf(stderr, "\n[add_local_action()] is not dead action.\n\n");
+                        fprintf(stderr, "dir: %d\n", (int)dir); 
                         action_list->push_back(action);
 
                     }
@@ -728,6 +743,7 @@ class Map{
                 // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) not visited.\n", nextPos.row, nextPos.col);
 
                 nextPosQueue->push(nextPos);
+                (*vstdPosTbl)[pos2key(nextPos)] = true;
                 return true;
             }else{
                 // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) already visited.\n", nextPos.row, nextPos.col);
@@ -1150,12 +1166,6 @@ class Solver{
         start_thread();
         join_thread();
         
-        // while(!done);
-
-        
-        // fprintf(stderr, "\n[Solver()] done!\n\n"); 
-        // map->print_state(doneState);  
-        
         recover_steps();
         output_steps();
 
@@ -1163,25 +1173,24 @@ class Solver{
         
     }
 
-    struct entryArg{
-        Solver* objPtr;
-        int threadId;
-    }
+
+
 
     void start_thread()
     {
         int ret;
         entryArg* argPtr;
 
-        nxStThrdNum = 1;
-
-
-
+        mutex_vstdStTbl = PTHREAD_MUTEX_INITIALIZER; 
+        mutex_vstdClidStTbl = PTHREAD_MUTEX_INITIALIZER; 
+        mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER; 
         mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER;     
-        cond_cons_nextStateQueue = PTHREAD_COND_INITIALIZER; 
+        
 
+
+        nxStThrdNum = 1;
         nxStThrds = new pthread_t[nxStThrdNum];
-        for(int i=0;i<saThrdNum;i++){
+        for(int i=0;i<nxStThrdNum;i++){
             argPtr = new entryArg;
             argPtr->objPtr = this;
             argPtr->threadId = i;
@@ -1190,27 +1199,13 @@ class Solver{
             if(ret != 0) printf("create thread failed.\n");
         }
 
-        
 
-        saDstbThrdNum = 3;
-        saDstbThrds = new pthread_t[saDstbThrdNum];
-        for(int i=0; i < saDstbThrdNum; i++){
-            argPtr = new entryArg;
-            argPtr->objPtr = this;
-            argPtr->threadId = i;
-
-            ret = pthread_create(&saDstbThrds[i], NULL, thrd_sa_distributer_entry, (void *)argPtr);
-            if(ret != 0) printf("create thread failed.\n");
-        }
-
-
-
-        cond_cons_sa_lists = PTHREAD_COND_INITIALIZER; 
-        mutex_sa_lists = new pthread_mutex_t[saThrdNum];
-        for(int i=0;i<saThrdNum;i++)mutex_sa_lists[i] = PTHREAD_COND_INITIALIZER;
-    
         saThrdNum = 3;
-        sa_lists = new list<SA>[saThrdNum];
+        
+        mutex_unchkNxSt_lists = new pthread_mutex_t[saThrdNum];
+        for(int i=0;i<saThrdNum;i++)mutex_unchkNxSt_lists[i] = PTHREAD_MUTEX_INITIALIZER;
+
+        unchkNxSt_lists = new list<State>[saThrdNum];
         saThrds = new pthread_t[saThrdNum];
         for(int i=0;i<saThrdNum;i++){
             argPtr = new entryArg;
@@ -1233,13 +1228,12 @@ class Solver{
             pthread_join(saThrds[i], NULL);
         }  
 
-        for (int i = 0; i < saDstbThrdNum; i++){
-            pthread_join(saDstbThrds[i], NULL);
-        }  
+ 
     }
 
 
-    static void * thrd_cons_nxStQueue_entry(void *objPtr) {
+
+    static void * thrd_cons_nxStQueue_entry(void *arg) {
         entryArg *argPtr = (entryArg *)arg;
 
         int threadId = argPtr->threadId;
@@ -1248,6 +1242,7 @@ class Solver{
         
         return NULL;
     }
+
 
     static void * thrd_cons_sa_lists_entry(void *arg) {
         entryArg *argPtr = (entryArg *)arg;
@@ -1258,19 +1253,6 @@ class Solver{
         
         return NULL;
     }
-
-    static void * thrd_sa_distributer_entry(void *arg) {
-        entryArg *argPtr = (entryArg *)arg;
-
-        int threadId = argPtr->threadId;
-        Solver *objPtr = (Solver *)argPtr->objPtr;
-        objPtr->thrd_sa_distributer(threadId);
-
-        return NULL;
-    }
-
-
-
 
 
 
@@ -1288,113 +1270,146 @@ class Solver{
 
             pthread_mutex_lock(&mutex_nextStateQueue);
             if(!nextStateQueue.empty()){
+               
                 state = nextStateQueue.front();
                 nextStateQueue.pop();
                 has_new_nextState_data = true;
             }
             pthread_mutex_unlock(&mutex_nextStateQueue);
             
-
+        
             if(has_new_nextState_data){
-                pthread_mutex_lock(&mutex_sa_lists);
-                map->get_available_actions(state, &action_list); 
-                // sa.state = state;
-                // while(!action_list.empty()){
-                //     sa.action = action_list.front();
-                //     action_list.pop_front();
+                map->get_available_actions(state, &action_list);
+                
+                
+                fprintf(stderr, "\n[thrd_cons_nxStQueue()] print action: \n\n"); 
+                print_action_list(action_list);
+                exit(-1);
 
-                //     sa_lists.push_back(sa);
-                // }
                 thrd_sa_distributer(state, &action_list);
-                pthread_mutex_unlock(&mutex_sa_lists);
+
+             
             }
         }
     }
+
+
 
 
     void thrd_sa_distributer(State state, list<Action>* action_list){
 
-        SA sa;
-        int turn;
+        int minLenThrdId, minLen;
         bool is_push_ok;
+        State nextSt;
+        Action curAction;
 
-        sa.state = state;
+        list<State> nextSts;
+
+        
+
         while(!action_list->empty()){
+            curAction = action_list->front();
+            action_list->pop_front();            
+            map->act(state, curAction, &nextSt);  
 
-            sa.action = action_list->front();
-            action_list->pop_front();
+            if(map->is_done(nextSt)){
+                doneState = nextSt;
+                doneAction = curAction;
+                done = true;
 
-            is_push_ok = false;
-            while(!is_push_ok){
-                
-
-            }
-
-            sa_lists.push_back(sa);
+                fprintf(stderr, "\ndone!\n\n"); 
+                map->print_state(doneState);   
+                return;      
+            } 
+            nextSts.push_back(nextSt);
         }
 
-      
-        // for(int i=0; i<saThrdNum; i++){pthread_mutex_lock(&mutex_sa_lists[i]);}
 
-        // for(int i=0; i<saThrdNum; i++){pthread_mutex_unlock(&mutex_sa_lists[i]);}
+        for(int i=0; i<saThrdNum; i++){pthread_mutex_lock(&mutex_unchkNxSt_lists[i]);}
+
+        while(!nextSts.empty()){
+
+            nextSt = nextSts.front();
+            nextSts.pop_front();
+
+            is_push_ok = false;
+            minLenThrdId = 0;
+            minLen = 10000;            
+            for(int i=0; i<saThrdNum; i++){
+
+                if(_is_boxPos_in_list(nextSt.boxPos, unchkNxSt_lists[i])){
+                    unchkNxSt_lists[i].push_back(nextSt);
+                    is_push_ok = true;
+                    break;
+                }
+
+                if(minLen > unchkNxSt_lists[i].size()){
+                    minLen = unchkNxSt_lists[i].size();
+                    minLenThrdId = i;
+                }
+            }
+
+            if(!is_push_ok){
+                unchkNxSt_lists[minLenThrdId].push_back(nextSt);
+            }
+        }
+
+        for(int i=0; i<saThrdNum; i++){pthread_mutex_unlock(&mutex_unchkNxSt_lists[i]);}
     }
+
+    bool _is_boxPos_in_list(boxPos_t boxPos, list<State> st_list){
+        State probe_st;
+        while(!st_list.empty()){
+            probe_st = st_list.front();
+            st_list.pop_front();
+            if(probe_st.boxPos == boxPos) return true;
+        }
+        return false;
+    }
+
 
 
     void thrd_cons_sa_lists(int threadId){
 
-        bool isStVstd, has_new_sa_data;
+        bool has_new_sa_data;
         Action curAction;
-        SA curSA;
-        State nextState, curState;
+        State nextState;
 
 
-        pthread_mutex_lock(&mutex_nextStateQueue);
-        nextStateQueue.push(map->get_state());  
-        pthread_mutex_unlock(&mutex_nextStateQueue);
+        if(threadId == 0){
+            pthread_mutex_lock(&mutex_nextStateQueue);
+            nextStateQueue.push(map->get_state());  
+            pthread_mutex_unlock(&mutex_nextStateQueue);
+
+            curAction.row = MAP_COORD_RSRV;
+            curAction.col = MAP_COORD_RSRV;
+            add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
+        }
 
 
-        curAction.row = MAP_COORD_RSRV;
-        curAction.col = MAP_COORD_RSRV;
-        add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
-
-        while(1){ 
+        while(!done){ 
             
             has_new_sa_data = false;
 
-            pthread_mutex_lock(&mutex_sa_lists[threadId]);
-            if(!sa_lists.empty()){
-                curSA = sa_lists.front(); 
-                sa_lists.pop_front();  
-                curAction = curSA.action;
-                curState = curSA.state;
+            pthread_mutex_lock(&mutex_unchkNxSt_lists[threadId]);
+            if(!unchkNxSt_lists[threadId].empty()){
+                nextState = unchkNxSt_lists[threadId].front(); 
+                unchkNxSt_lists[threadId].pop_front();  
                 has_new_sa_data = true;
             }
-            pthread_mutex_unlock(&mutex_sa_lists[threadId]);
-
+            pthread_mutex_unlock(&mutex_unchkNxSt_lists[threadId]);
 
 
             if(has_new_sa_data){
+                
+                if(!is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState)){ 
 
-                map->act(curState, curAction, &nextState);    
-            
-                if(map->is_done(nextState)){
-                    doneState = nextState;
-                    doneAction = curAction;
-                    done = true;
-
-                    fprintf(stderr, "\n[thrd_cons_sa_lists()] done!\n\n"); 
-                    map->print_state(doneState);   
-
-                    return;      
-                } 
-
-                isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState); 
-                if(!isStVstd){ 
                     add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); 
-                    
+               
                     pthread_mutex_lock(&mutex_nextStateQueue);
                     nextStateQueue.push(nextState);  
                     pthread_mutex_unlock(&mutex_nextStateQueue);
+
                 }  
             }
         }
@@ -1405,23 +1420,36 @@ class Solver{
     bool is_state_visited(unordered_map<bitset<64>, Action> *vstdStTbl, 
                     unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
 
-
+        
+        pthread_mutex_lock(&mutex_vstdStTbl);
         if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
+        pthread_mutex_unlock(&mutex_vstdStTbl);
+
+
 
 
         Pos vstdPos;
+
+        pthread_mutex_lock(&mutex_vstdStTbl);
         Action preVstdAction = (*vstdStTbl)[state.boxPos];
+        pthread_mutex_unlock(&mutex_vstdStTbl);        
+        
         map->move_by_action(preVstdAction, &vstdPos);
         Pos curPos{.row{state.row}, .col{state.col}};
-
 
         if(map->is_reachable(state, curPos, vstdPos)){return true;}
         
 
+        pthread_mutex_lock(&mutex_vstdClidStTbl);
         if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){return false;}
+        pthread_mutex_unlock(&mutex_vstdClidStTbl);        
+        
+        
 
-  
+        pthread_mutex_lock(&mutex_vstdClidStTbl);
         ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
+        pthread_mutex_unlock(&mutex_vstdClidStTbl);        
+        
         while(cur_ptr){
             Action preVstdAction = cur_ptr->action;
             map->move_by_action(preVstdAction, &vstdPos);
@@ -1438,14 +1466,22 @@ class Solver{
     void add_visited_state(unordered_map<bitset<64>, Action> *vstdStTbl, 
                     unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
         
+        bool is_in_vstdStTable;
 
-        if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){ // not inside.
-            
+        pthread_mutex_lock(&mutex_vstdStTbl);
+        is_in_vstdStTable = is_in_vstdStTbl(vstdStTbl, state.boxPos);
+        pthread_mutex_unlock(&mutex_vstdStTbl);  
+        
+        if(!is_in_vstdStTable){ // not inside.
+            pthread_mutex_lock(&mutex_vstdStTbl);
             (*vstdStTbl)[state.boxPos] = action;
-        }else{
-
+            pthread_mutex_unlock(&mutex_vstdStTbl); 
+        }
+        else{
+            pthread_mutex_lock(&mutex_vstdClidStTbl);
             probe_vstdClidCount++;
             insert_ActionNode(vstdClidStTbl, state, action);
+            pthread_mutex_unlock(&mutex_vstdClidStTbl);            
         }
     }
 
@@ -1655,6 +1691,11 @@ class Solver{
     }
     
 
+    struct entryArg{
+        Solver* objPtr;
+        int threadId;
+    };
+
     int stepsBufSize;
     char* stepsBuf;
     int stepsOfst;
@@ -1666,25 +1707,25 @@ class Solver{
     Map* map;
 
     
-    pthread_mutex_t* mutex_sa_lists;
-    pthread_cond_t cond_cons_sa_lists; 
+    pthread_mutex_t* mutex_unchkNxSt_lists;
+    pthread_mutex_t mutex_vstdStTbl;
+    pthread_mutex_t mutex_vstdClidStTbl;
+    pthread_mutex_t mutex_nextStateQueue;
 
-    pthread_mutex_t mutex_nextStateQueue;     
-    pthread_cond_t cond_cons_nextStateQueue; 
 
     bool done;
     State doneState;
     Action doneAction;
 
-    list<SA>* sa_lists;
+    list<State>* unchkNxSt_lists;
     
     int saThrdNum;
     int nxStThrdNum;
-    int saDstbThrdNum;
+    // int saDstbThrdNum;
 
     pthread_t* nxStThrds;
     pthread_t* saThrds;
-    pthread_t* saDstbThrds;
+    // pthread_t* saDstbThrds;
 
 
 

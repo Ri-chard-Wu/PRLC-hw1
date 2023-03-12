@@ -404,12 +404,13 @@ class Map{
         Pos nextPos;
         Action action;
         nextPosQueue.push(curPos);
+        vstdPosTbl[pos2key(curPos)] = true;
 
         while(!nextPosQueue.empty()){
             
             curPos = nextPosQueue.front();
             nextPosQueue.pop();
-            vstdPosTbl[pos2key(curPos)] = true;
+            // vstdPosTbl[pos2key(curPos)] = true;
 
             add_local_action(renderedMap, curPos, action_list); // ok
 
@@ -723,6 +724,7 @@ class Map{
                 // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) not visited.\n", nextPos.row, nextPos.col);
 
                 nextPosQueue->push(nextPos);
+                (*vstdPosTbl)[pos2key(nextPos)] = true;
                 return true;
             }else{
                 // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) already visited.\n", nextPos.row, nextPos.col);
@@ -1181,7 +1183,7 @@ class Solver{
 
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(stop - start);
-            fprintf(stderr, "get_available_actions(): %d us\n", duration.count());
+            // fprintf(stderr, "get_available_actions(): %d us\n", duration.count());
 
 
 
@@ -1203,7 +1205,7 @@ class Solver{
 
                 stop = high_resolution_clock::now();
                 duration = duration_cast<microseconds>(stop - start);
-                fprintf(stderr, "   act(): %d us\n", duration.count());
+                // fprintf(stderr, "   act(): %d us\n", duration.count());
                 
                 
                 
@@ -1223,7 +1225,7 @@ class Solver{
 
                 stop = high_resolution_clock::now();
                 duration = duration_cast<microseconds>(stop - start);
-                fprintf(stderr, "   is_state_visited(): %d us\n", duration.count());
+                // fprintf(stderr, "   is_state_visited(): %d us\n", duration.count());
                                 
 
                 if(!isStVstd){ 
@@ -1234,7 +1236,7 @@ class Solver{
 
                     stop = high_resolution_clock::now();
                     duration = duration_cast<microseconds>(stop - start);
-                    fprintf(stderr, "       add_visited_state(): %d us\n", duration.count());
+                    // fprintf(stderr, "       add_visited_state(): %d us\n", duration.count());
                             
                             
                       
