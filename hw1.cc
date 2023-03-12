@@ -84,10 +84,7 @@ struct Pos{
     unsigned char row, col;
 };
 
-struct entryArg{
-    Solver* objPtr;
-    int threadId;
-}
+
 
 unsigned short pos2key(Pos pos){    
     return ((((unsigned short)pos.row) << 8) | ((unsigned short)pos.col));
@@ -1207,7 +1204,7 @@ class Solver{
 
 
         saThrdNum = 3;
-        for(int i=0;i<saThrdNum;i++)mutex_unchkNxSt_lists[i] = PTHREAD_COND_INITIALIZER;
+        for(int i=0;i<saThrdNum;i++)mutex_unchkNxSt_lists[i] = PTHREAD_MUTEX_INITIALIZER;
     
         unchkNxSt_lists = new list<State>[saThrdNum];
         saThrds = new pthread_t[saThrdNum];
@@ -1239,7 +1236,7 @@ class Solver{
 
 
 
-    static void * thrd_cons_nxStQueue_entry(void *objPtr) {
+    static void * thrd_cons_nxStQueue_entry(void *arg) {
         entryArg *argPtr = (entryArg *)arg;
 
         int threadId = argPtr->threadId;
@@ -1338,15 +1335,15 @@ class Solver{
 
         while(!action_list->empty()){
 
-            nextSt = nextSts->front();
-            nextSts->pop_front();
+            nextSt = nextSts.front();
+            nextSts.pop_front();
 
             is_push_ok = false;
             minLenThrdId = 0;
             minLen = 10000;            
             for(int i=0; i<saThrdNum; i++){
 
-                if(is_in_list(nextSt, unchkNxSt_lists[i])){
+                if(_is_boxPos_in_list(nextSt.boxPos, unchkNxSt_lists[i])){
                     unchkNxSt_lists[i].push_back(nextSt);
                     is_push_ok = true;
                     break;
@@ -1366,7 +1363,15 @@ class Solver{
         for(int i=0; i<saThrdNum; i++){pthread_mutex_unlock(&mutex_unchkNxSt_lists[i]);}
     }
 
-
+    bool _is_boxPos_in_list(boxPos_t boxPos, list<State> st_list){
+        State probe_st;
+        while(!st_list.empty()){
+            probe_st = st_list.front();
+            st_list.pop_front();
+            if(probe_st.boxPos == boxPos) return true;
+        }
+        return false;
+    }
 
 
 
@@ -1469,7 +1474,7 @@ class Solver{
         bool is_in_vstdStTable;
 
         pthread_mutex_lock(&mutex_vstdStTbl);
-        is_in_vstdStTable = is_in_vstdStTbl(vstdStTbl, state.boxPos)
+        is_in_vstdStTable = is_in_vstdStTbl(vstdStTbl, state.boxPos);
         pthread_mutex_unlock(&mutex_vstdStTbl);  
         
         if(!is_in_vstdStTable){ // not inside.
@@ -1691,6 +1696,11 @@ class Solver{
     }
     
 
+    struct entryArg{
+        Solver* objPtr;
+        int threadId;
+    };
+
     int stepsBufSize;
     char* stepsBuf;
     int stepsOfst;
@@ -1703,7 +1713,6 @@ class Solver{
 
     
     pthread_mutex_t* mutex_unchkNxSt_lists;
-    pthread_mutex_t mutex_nextStateQueue;     
     pthread_mutex_t mutex_vstdStTbl;
     pthread_mutex_t mutex_vstdClidStTbl;
     pthread_mutex_t mutex_nextStateQueue;
