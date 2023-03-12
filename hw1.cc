@@ -62,6 +62,15 @@ struct State{
     unsigned char row, col;
 };
 
+struct Action{
+    unsigned char row, col;
+    Dir dir;
+};
+
+struct SA{
+    State state;
+    Action action;
+};
 
 struct Pos{
     unsigned char row, col;
@@ -93,10 +102,6 @@ enum Dir{
     LEFT
 };
 
-struct Action{
-    unsigned char row, col;
-    Dir dir;
-};
 
 struct ActionNode{
     Action action;
@@ -1140,63 +1145,67 @@ class Solver{
     Solver(char* filename){
         map = new Map(filename);
         map->print_map(map->map);
+        
+        start_thread();
+        
+        while(!done);
+        
+        fprintf(stderr, "\n[Solver()] done!\n\n"); 
+        map->print_state(doneState);  
+        
+        recover_steps();
+        output_steps();
 
-        if(explore()){
-            recover_steps();
-            output_steps();
-        }
         probe_print_stat();
+        join_thread();
     }
 
 
-    struct SA{
-        State state;
-        Action action;
+
+
+
+    void start_thread()
+    {
+        int ret;
+        threads = new pthread_t[2];
+
+        ret = pthread_create(&threads[0], NULL, thrd_prod_sa_list_entry, (void *)this);
+        if(ret != 0) printf("create thread 0 failed.\n");
+
+        ret = pthread_create(&threads[1], NULL, thrd_cons_sa_list_entry, (void *)this);
+        if(ret != 0) printf("create thread 1 failed.\n");
     }
 
-    pthread_mutex_t mutex_local_unvstdSt_queue = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_t mutex_done = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_t mutex_sa_list = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_t mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER;
+    void join_thread()
+    {
+        for (int i = 0; i < 2; i++){
+            pthread_join(threads[i], NULL);
+        }
+    }
 
-    pthread_cond_t cond_cons_sa_list = PTHREAD_COND_INITIALIZER; 
-    pthread_cond_t cond_prod_sa_list = PTHREAD_COND_INITIALIZER; 
-    pthread_cond_t cond_cons_nextStateQueue = PTHREAD_COND_INITIALIZER; 
-    pthread_cond_t cond_prod_nextStateQueue = PTHREAD_COND_INITIALIZER; 
 
-    pthread_cond_t cond_checkAddLocalUnvstdSt = PTHREAD_COND_INITIALIZER; 
+    static void * thrd_prod_sa_list_entry(void *objPtr) {
+        ((Solver *)objPtr)->thrd_prod_sa_list();
+        return NULL;
+    }
 
-    bool done;
-    State doneState;
-    Action doneAction;
-
-    queue<State> local_unvstdSt_queue;
-
-    list<SA> sa_list;
-
+    static void * thrd_cons_sa_list_entry(void *objPtr) {
+        ((Solver *)objPtr)->thrd_cons_sa_list();
+        return NULL;
+    }
 
 
     void thrd_prod_sa_list(){
-
     
-        Action curAction;
         list<Action> action_list;
         State state;
         SA sa;
         
-        nextStateQueue.push(map->get_state());
-
-
-        curAction.row = MAP_COORD_RSRV;
-        curAction.col = MAP_COORD_RSRV;
-        add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
-
-        while(1){
-
+        while(!done){
 
             pthread_mutex_lock(&mutex_nextStateQueue);
             while(nextStateQueue.empty()){
-                pthread_cond_wait(&cond_prod_nextStateQueue, &mutex_nextStateQueue);
+                pthread_cond_wait(&cond_cons_nextStateQueue, &mutex_nextStateQueue);
             } 
             state = nextStateQueue.front();
             nextStateQueue.pop();
@@ -1213,93 +1222,61 @@ class Solver{
                 sa_list.push(sa);
             }
             pthread_mutex_unlock(&mutex_sa_list);
-            pthread_cond_signal(&cond_cons_sa_list); // wake up cons to consume action list.
-            
-
-            // pthread_cond_wait(&cond_prod_actCheckAdd, &mutex_sa_list);
-
-
-            // pthread_mutex_lock(&mutex_done);
-            // if(done){
-            //     fprintf(stderr, "\n[explore()]: done!\n\n"); 
-            //     map->print_state(doneState);                
-            //     return true;
-            // }
-            // pthread_mutex_unlock(&mutex_done);
+            pthread_cond_signal(&cond_cons_sa_list); // wake up cons to consume action list. 
+        }
     }
-
-
- 
-
-    static void * thrdEnt_actCheckAdd(void *argPtr) {
-
-        entryArg *entryPtr = ((entryArg *)argPtr);
-        
-        int base = entryPtr->base;
-        int threadId = entryPtr->threadId;
-
-        entryPtr->objPtr->thrd_actCheckAdd(base, threadId); 
-
-        return NULL;
-    }
-
 
 
     void thrd_cons_sa_list(){
 
-            bool isStVstd;
-            Action curAction;
-            SA curSA;
-            State nextState, curState;
+        bool isStVstd;
+        Action curAction;
+        SA curSA;
+        State nextState, curState;
 
-            while(1){ 
-                
+        pthread_mutex_lock(&mutex_nextStateQueue);
+        nextStateQueue.push(map->get_state());  
+        pthread_mutex_unlock(&mutex_nextStateQueue);
 
-                pthread_mutex_lock(&mutex_sa_list);
-                while(sa_list.empty()){
-                    pthread_cond_wait(&cond_cons_sa_list, &mutex_sa_list);
-                }
-                curSA = sa_list.front(); 
-                sa_list.pop_front();  
-                curAction = curSA.action;
-                curState = curSA.state;
-                pthread_mutex_unlock(&mutex_sa_list);
+        curAction.row = MAP_COORD_RSRV;
+        curAction.col = MAP_COORD_RSRV;
+        add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
 
-
-                map->act(curState, curAction, &nextState);    
-                
-
-                if(map->is_done(nextState)){
-                    pthread_mutex_lock(&mutex_done);
-                    doneState = nextState;
-                    doneAction = curAction;
-                    done = true;
-                    pthread_mutex_unlock(&mutex_done);         
-                } 
-
-
-                
-         
-                isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState); 
-                if(!isStVstd){ 
-                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); 
-                    
-                    pthread_mutex_lock(&mutex_nextStateQueue);
-                    nextStateQueue.push(nextState);  
-                    pthread_mutex_unlock(&mutex_nextStateQueue);
-
-            		pthread_cond_signal(&cond_prod_nextStateQueue); 
-                }                   
-       
-
+        while(1){ 
+            
+            pthread_mutex_lock(&mutex_sa_list);
+            while(sa_list.empty()){
+                pthread_cond_wait(&cond_cons_sa_list, &mutex_sa_list);
             }
+            curSA = sa_list.front(); 
+            sa_list.pop_front();  
+            curAction = curSA.action;
+            curState = curSA.state;
+            pthread_mutex_unlock(&mutex_sa_list);
+
+
+            map->act(curState, curAction, &nextState);    
+            
+
+            if(map->is_done(nextState)){
+                doneState = nextState;
+                doneAction = curAction;
+                done = true;
+                return;      
+            } 
+
+            isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState); 
+            if(!isStVstd){ 
+                add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); 
+                
+                pthread_mutex_lock(&mutex_nextStateQueue);
+                nextStateQueue.push(nextState);  
+                pthread_mutex_unlock(&mutex_nextStateQueue);
+                pthread_cond_signal(&cond_cons_nextStateQueue); 
+            }                   
         }
     }
-
-    void thre_checkAddLocalUnvstdSt(){
-
-    }
-
+    
 
 
     bool is_state_visited(unordered_map<bitset<64>, Action> *vstdStTbl, 
@@ -1335,12 +1312,6 @@ class Solver{
     }
 
 
-
-
-
-
-
-
     void add_visited_state(unordered_map<bitset<64>, Action> *vstdStTbl, 
                     unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
         
@@ -1357,13 +1328,6 @@ class Solver{
 
 
     void insert_ActionNode(unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
-        
-        // Pos pos;
-        // pos.row = state.row;
-        // pos.col = state.col;
-
-        // ActionNode *cur = new ActionNode;
-        // cur->pos = pos;
 
         ActionNode *cur = new ActionNode;
         cur->action = action;
@@ -1379,10 +1343,6 @@ class Solver{
     }
 
 
-
-
-
-
     
 
     bool is_in_vstdClidStTbl(unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, 
@@ -1394,10 +1354,6 @@ class Solver{
     bool is_in_vstdStTbl(unordered_map<bitset<64>, Action> *vstdStTbl, bitset<64> boxPos){
         return !(vstdStTbl->find(boxPos) == vstdStTbl->end());
     }
-
-
-
-
 
 
 
@@ -1576,10 +1532,6 @@ class Solver{
     }
     
 
-
-
-
-
     int stepsBufSize;
     char* stepsBuf;
     int stepsOfst;
@@ -1587,9 +1539,24 @@ class Solver{
     unordered_map<bitset<64>, Action> vstdStTbl;
     unordered_map<bitset<64>, ActionNode*> vstdClidStTbl;
     queue<State> nextStateQueue;
-    
 
     Map* map;
+
+    pthread_mutex_t mutex_sa_list = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t cond_cons_sa_list = PTHREAD_COND_INITIALIZER; 
+
+    pthread_mutex_t mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER;     
+    pthread_cond_t cond_cons_nextStateQueue = PTHREAD_COND_INITIALIZER; 
+    
+
+    bool done;
+    State doneState;
+    Action doneAction;
+
+    list<SA> sa_list;
+    
+    pthread_t* threads;
+
 };
 
 
