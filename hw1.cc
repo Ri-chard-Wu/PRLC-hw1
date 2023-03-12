@@ -24,6 +24,8 @@ unsigned int probe_vstdClidCount;
 int probe_nextStateQueue_max_size;
 int probe__add_one_step__calling_count;
 
+
+
 void probe_get_nextStateQueue_max_size(int queueSize){
     if(queueSize > probe_nextStateQueue_max_size){
         probe_nextStateQueue_max_size = queueSize;
@@ -82,7 +84,10 @@ struct Pos{
     unsigned char row, col;
 };
 
-
+struct entryArg{
+    Solver* objPtr;
+    int threadId;
+}
 
 unsigned short pos2key(Pos pos){    
     return ((((unsigned short)pos.row) << 8) | ((unsigned short)pos.col));
@@ -1152,7 +1157,6 @@ class Solver{
         
         // while(!done);
 
-        
         // fprintf(stderr, "\n[Solver()] done!\n\n"); 
         // map->print_state(doneState);  
         
@@ -1163,18 +1167,13 @@ class Solver{
         
     }
 
-    struct entryArg{
-        Solver* objPtr;
-        int threadId;
-    }
+
+
 
     void start_thread()
     {
         int ret;
         entryArg* argPtr;
-
-        nxStThrdNum = 1;
-
 
         mutex_vstdStTbl = PTHREAD_MUTEX_INITIALIZER; 
         mutex_vstdClidStTbl = PTHREAD_MUTEX_INITIALIZER; 
@@ -1183,9 +1182,9 @@ class Solver{
         mutex_unchkNxSt_lists = new pthread_mutex_t[saThrdNum];
 
 
-
+        nxStThrdNum = 1;
         nxStThrds = new pthread_t[nxStThrdNum];
-        for(int i=0;i<saThrdNum;i++){
+        for(int i=0;i<nxStThrdNum;i++){
             argPtr = new entryArg;
             argPtr->objPtr = this;
             argPtr->threadId = i;
@@ -1194,24 +1193,22 @@ class Solver{
             if(ret != 0) printf("create thread failed.\n");
         }
 
-        
 
-        saDstbThrdNum = 3;
-        saDstbThrds = new pthread_t[saDstbThrdNum];
-        for(int i=0; i < saDstbThrdNum; i++){
-            argPtr = new entryArg;
-            argPtr->objPtr = this;
-            argPtr->threadId = i;
+        // saDstbThrdNum = 3;
+        // saDstbThrds = new pthread_t[saDstbThrdNum];
+        // for(int i=0; i < saDstbThrdNum; i++){
+        //     argPtr = new entryArg;
+        //     argPtr->objPtr = this;
+        //     argPtr->threadId = i;
 
-            ret = pthread_create(&saDstbThrds[i], NULL, thrd_sa_distributer_entry, (void *)argPtr);
-            if(ret != 0) printf("create thread failed.\n");
-        }
-
+        //     ret = pthread_create(&saDstbThrds[i], NULL, thrd_sa_distributer_entry, (void *)argPtr);
+        //     if(ret != 0) printf("create thread failed.\n");
+        // }
 
 
+        saThrdNum = 3;
         for(int i=0;i<saThrdNum;i++)mutex_unchkNxSt_lists[i] = PTHREAD_COND_INITIALIZER;
     
-        saThrdNum = 3;
         unchkNxSt_lists = new list<State>[saThrdNum];
         saThrds = new pthread_t[saThrdNum];
         for(int i=0;i<saThrdNum;i++){
@@ -1235,10 +1232,11 @@ class Solver{
             pthread_join(saThrds[i], NULL);
         }  
 
-        for (int i = 0; i < saDstbThrdNum; i++){
-            pthread_join(saDstbThrds[i], NULL);
-        }  
+        // for (int i = 0; i < saDstbThrdNum; i++){
+        //     pthread_join(saDstbThrds[i], NULL);
+        // }  
     }
+
 
 
     static void * thrd_cons_nxStQueue_entry(void *objPtr) {
@@ -1251,6 +1249,7 @@ class Solver{
         return NULL;
     }
 
+
     static void * thrd_cons_sa_lists_entry(void *arg) {
         entryArg *argPtr = (entryArg *)arg;
 
@@ -1261,15 +1260,16 @@ class Solver{
         return NULL;
     }
 
-    static void * thrd_sa_distributer_entry(void *arg) {
-        entryArg *argPtr = (entryArg *)arg;
 
-        int threadId = argPtr->threadId;
-        Solver *objPtr = (Solver *)argPtr->objPtr;
-        objPtr->thrd_sa_distributer(threadId);
+    // static void * thrd_sa_distributer_entry(void *arg) {
+    //     entryArg *argPtr = (entryArg *)arg;
 
-        return NULL;
-    }
+    //     int threadId = argPtr->threadId;
+    //     Solver *objPtr = (Solver *)argPtr->objPtr;
+    //     objPtr->thrd_sa_distributer(threadId);
+
+    //     return NULL;
+    // }
 
 
 
@@ -1717,11 +1717,11 @@ class Solver{
     
     int saThrdNum;
     int nxStThrdNum;
-    int saDstbThrdNum;
+    // int saDstbThrdNum;
 
     pthread_t* nxStThrds;
     pthread_t* saThrds;
-    pthread_t* saDstbThrds;
+    // pthread_t* saDstbThrds;
 
 
 
