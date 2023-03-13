@@ -3,7 +3,7 @@ cd ~/hw1
 
 # make clean
 # make 2>make-stderr.out
-
+rm ${2}
 g++ -std=c++17 -O3 -pthread -fopenmp ${2}.cc -o ${2} 2>make-stderr.out
 
 echo "==================================="

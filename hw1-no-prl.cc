@@ -485,75 +485,90 @@ class Map{
 
 
         if(is_dead_corner(nextRenderedMap, x_pos, action.dir)){
+            // fprintf(stderr, "\n[is_dead_action()] is dead corner\n\n");
             return true;
         }
         else if(is_dead_wall(nextRenderedMap, x_pos, action.dir)){
-            
+
+            // char* debugMap = new char[fileLen];
+            // copy_map(nextRenderedMap, debugMap);
+            // safe_place_object(debugMap, x_pos, 'o');
+
+            // fprintf(stderr, "\n[is_dead_action()] is dead wall. Print map:\n\n"); 
+            // print_map(debugMap);
+            // print_action(action);
+
+            return true;
         }
-        // else if(is_pushPos_unreachable(o_pos, x_pos)){
-        //     fprintf(stderr, "\n[is_dead_action()] is_pushPos_unreachable.\n\n");
-        //     return true;
-        // }  
 
         return false;         
     }
 
-    void is_dead_wall(char* renderedMap, Pos x_pos, Dir pushDir){
+    bool is_dead_wall(char* renderedMap, Pos x_pos, Dir pushDir){
+
         // renderedMap has no 'o', and has the target 'x' removed.
         int trgtTileCnt, xCnt;
         int adjDir1, adjDir2;
         Pos probePos, wallProbePos;
-        // bool isTwoSideBounded, isOneSideBounded;
         bool isNotBounded;
+        char mapObj;
 
 
         move(x_pos, pushDir, &probePos);
         mapObj = get_map_object(renderedMap, probePos);
-        if(mapObj != '#')break;
-
+        if(mapObj != '#') return false; // not even a wall.
 
 
         adjDir1 = (((int)pushDir)+1)%4;
         adjDir2 = (((int)pushDir)+3)%4;
-        
-        // isTwoSideBounded = true;
 
+        isNotBounded = false;
+        trgtTileCnt = 0;
+        mapObj = get_map_object(renderedMap, x_pos);
+        if(mapObj == '.')trgtTileCnt++;
+        xCnt = 1;        
+
+        // check two adjacent sides. If one side is not bounded, then not dead.
         for(int adjDir=0; adjDir<=4; adjDir++){
-            if(adjDir != adjDir1 || adjDir != adjDir2) continue;
+            if(adjDir != adjDir1 && adjDir != adjDir2) continue;
 
-            trgtTileCnt = 0;
-            xCnt = 0;
-            probePos = x_pos;
-            isNotBounded = false;
-
-            move(probePos, adjDir, &probePos);
+            move(x_pos, (Dir)adjDir, &probePos); // initialize position.
             mapObj = get_map_object(renderedMap, probePos);  
 
             while(mapObj != '#'){
+
+                if(mapObj == 'x' || mapObj == 'X'){
+                    xCnt++;                 
+                } 
+
+                if(mapObj == 'X' || mapObj == '.') {
+                    trgtTileCnt++;
+                }
                 
-                move(probePos, adjDir, &wallProbePos);
+
+                move(probePos, pushDir, &wallProbePos);
                 mapObj = get_map_object(renderedMap, wallProbePos);
-                if(mapObj == ' ' ||mapObj == '.'){
+                if(mapObj == ' ' || mapObj == '.'){
                     isNotBounded = true;
                     break;
                 } 
 
-                move(probePos, adjDir, &probePos);
+                move(probePos, (Dir)adjDir, &probePos);
                 mapObj = get_map_object(renderedMap, probePos);
             }
 
-            if(isNotBounded) break;
-
+            if(isNotBounded) break; // early stop.
         }
 
-
-
-        if(!isNotBounded){return true;}
-
-
-    
-        
-
+        if(isNotBounded){
+            return false;
+        }
+        else{
+            // if(trgtTileCnt < xCnt){
+            //     fprintf(stderr, "\nxCnt:%d, trgtTileCnt:%d\n", xCnt, trgtTileCnt); 
+            // }
+            return trgtTileCnt < xCnt;
+        }
     }
 
 
