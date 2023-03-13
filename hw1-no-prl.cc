@@ -211,7 +211,7 @@ class Map{
                 if(col > colMax) colMax = col;
                 col=0;
             }
-            else if(ch != '\n' && ch != EOF && ch != '#') {
+            else if(ch != '\n' && ch != EOF && ch != '#' && ch != '@' && ch != '!') {
                 spaceNum++;
             }
 
@@ -264,6 +264,9 @@ class Map{
             else if(ch == 'X' || ch == 'O' || ch == '.'){
                 map[offset++] = '.';
             }
+            else if(ch == '@' || ch == '!'){
+                map[offset++] = '@';
+            }            
             else{
                 map[offset++] = ' ';
             }  
@@ -310,7 +313,7 @@ class Map{
                 else if(ch == 'x' || ch == 'X'){
                     state.boxPos.set(size_t(offset++), true);
                 }
-                else if(ch == 'o' || ch == 'O'){
+                else if(ch == 'o' || ch == 'O' || ch == '!'){
                     state.boxPos.reset(size_t(offset++));
                     state.row = row;
                     state.col = col;
@@ -477,25 +480,11 @@ class Map{
         char* nextRenderedMap = new char[fileLen];
         copy_map(renderedMap, nextRenderedMap);
 
-
-
-        // fprintf(stderr, "\n[is_dead_action()] after render boxPos:\n\n");
-        // print_map(nextRenderedMap);    
-
-        // fprintf(stderr, "\n[is_dead_action()] print action:\n");
-        // print_action(action);
-
-
+        // renderedMap has no 'o'.
         safe_place_object(nextRenderedMap, o_pos, ' '); // remove 'x'.
 
 
-        // fprintf(stderr, "\n[is_dead_action()] after delete the x to be moved:\n\n");
-        // print_map(nextRenderedMap); 
-
-
-
-        if(is_dead_corner(nextRenderedMap, x_pos)){
-            // fprintf(stderr, "\n[is_dead_action()] is_dead_corner.\n\n");
+        if(is_dead_corner(nextRenderedMap, x_pos, action.dir)){
             return true;
         }
         // else if(is_pushPos_unreachable(o_pos, x_pos)){
@@ -514,8 +503,13 @@ class Map{
         }
     }
 
+    bool is_not_space(char ch){
+        return ch == '#' || ch != '@';
+    }
 
-    bool is_dead_corner(char* renderedMap, Pos x_pos){
+    bool is_dead_corner(char* renderedMap, Pos x_pos, Dir pushDir){
+        // renderedMap has no 'o', and has the target 'x' removed.
+
         // Fast path
         // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.' 
 
@@ -526,11 +520,7 @@ class Map{
 
         mapObj_x_pos = get_map_object(renderedMap, x_pos);
 
-        for(int dir=0; dir<=3; dir++){
-
-            // fprintf(stderr, "\n[is_dead_corner()] dir: %d.\n\n", dir);
-
-
+        for(int dir=((int)pushDir) - 1; dir <= ((int)pushDir) + 1; dir++){
 
             dir1 = dir; 
             dir2 = (dir1 + 1)%4;
@@ -718,7 +708,7 @@ class Map{
         
         // fprintf(stderr, "[add_unvisited_nextPos()] mapObj: %c\n", mapObj);
 
-        if(mapObj == '.' || mapObj == ' '){
+        if(mapObj == '.' || mapObj == ' ' || mapObj == '@'){
             if(!is_pos_visited<dictValue_t>(vstdPosTbl, nextPos)){
                 
                 // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) not visited.\n", nextPos.row, nextPos.col);
@@ -837,6 +827,7 @@ class Map{
         if(ch == 'o' || ch == 'O'){
             if(mapObj == ' ') set_map_object(map, pos, 'o');
             else if(mapObj == '.') set_map_object(map, pos, 'O');
+            else if(mapObj == '@') set_map_object(map, pos, '!');
             else{fprintf(stderr, "\n[safe_place_object()]:invalid placement.\n\n"); exit(-1);}
         }
         else if(ch == 'x' || ch == 'X'){
@@ -852,6 +843,8 @@ class Map{
             set_map_object(map, pos, ch);
         }        
     }
+
+
 
     void set_map_object(char* map, Pos pos, char ch){
         map[rowBegins[pos.row] + pos.col] = ch;
@@ -879,7 +872,7 @@ class Map{
                 else if(ch == 'x' || ch == 'X'){
                     state->boxPos.set(size_t(offset++), true);
                 }
-                else if(ch == 'o' || ch == 'O'){
+                else if(ch == 'o' || ch == 'O' || '!'){
                     offset++;
                     state->row = row;
                     state->col = col;
@@ -903,11 +896,12 @@ class Map{
         
         Pos probe_pos, curPos = pos1;
         nextPosQueue.push(curPos);
+        vstdPosTbl[pos2key(curPos)] = true;
                         
         while(!nextPosQueue.empty()){
             curPos = nextPosQueue.front();
             nextPosQueue.pop();
-            vstdPosTbl[pos2key(curPos)] = true;
+            // vstdPosTbl[pos2key(curPos)] = true;
 
             for(int dir=0; dir<=3; dir++){
                 add_unvisited_nextPos<bool>(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
