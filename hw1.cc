@@ -168,9 +168,11 @@ class Map{
         pos.row = state.row;
         pos.col = state.col;
 
-        mapObj = get_map_object(renderedMap, pos);
-        if(mapObj == '.') set_map_object(renderedMap, pos, 'O');
-        else if(mapObj == ' ') set_map_object(renderedMap, pos, 'o');
+        safe_place_object(renderedMap, pos, 'o');
+
+        // mapObj = get_map_object(renderedMap, pos);
+        // if(mapObj == '.') set_map_object(renderedMap, pos, 'O');
+        // else if(mapObj == ' ') set_map_object(renderedMap, pos, 'o');
 
         for (int i=0; i<fileLen; i++){
             fprintf(stderr, "%c", renderedMap[i]);
@@ -313,11 +315,15 @@ class Map{
                 else if(ch == 'x' || ch == 'X'){
                     state.boxPos.set(size_t(offset++), true);
                 }
-                else if(ch == 'o' || ch == 'O' || ch == '!'){
+                else if(ch == 'o' || ch == 'O'){
                     state.boxPos.reset(size_t(offset++));
                     state.row = row;
                     state.col = col;
-                }                    
+                }
+                else if(ch == '!'){
+                    state.row = row;
+                    state.col = col;
+                }                
             }
 
             col++;
@@ -588,7 +594,7 @@ class Map{
         // Fast path
         // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.' 
 
-        int dir1, dir2;
+        int dir1, dir2, adjDir1, adjDir;
         Pos probe_pos, probe_pos1, probe_pos2;
         char mapObj, mapObj_adj1, mapObj_adj2, mapObj_x_pos;
         bool is_dead;
@@ -596,8 +602,9 @@ class Map{
         mapObj_x_pos = get_map_object(renderedMap, x_pos);
 
         for(int dir=((int)pushDir) - 1; dir <= ((int)pushDir) + 1; dir++){
+            if(dir<0)dir+=4;
 
-            dir1 = dir; 
+            dir1 = dir%4; 
             dir2 = (dir1 + 1)%4;
 
             move(x_pos, (Dir)dir1, &probe_pos1);
@@ -858,16 +865,13 @@ class Map{
         char* renderedMap = new char[fileLen];
         render_boxPos(renderedMap, cur_state.boxPos);  
 
-        // fprintf(stderr, "\n[act()]: before action\n\n");
-        // print_map(renderedMap);
-        // print_state(cur_state);
 
         char mapObj;
         Pos o_pos, x_pos;
         
         o_pos.row = action.row;
         o_pos.col = action.col;
-        move(o_pos, action.dir, &x_pos);
+        move(o_pos, action.dir, &x_pos); // x_pos: current position of 'x'
 
         // replace 'x' in old position by 'o'.
         mapObj = get_map_object(renderedMap, x_pos); 
@@ -882,14 +886,14 @@ class Map{
         else if(mapObj == '.') set_map_object(renderedMap, x_pos, 'X');
         else {fprintf(stderr, "[act()] `x` new position not a space. \n"); exit(-1);}
 
-        // fprintf(stderr, "\n[act()]: after action\n\n");
-        // print_map(renderedMap);
-            
+        // if(probe_vstdCount > 0){
+        //     fprintf(stderr, "[act()] after set map. \n");
+        //     print_map(renderedMap);
+
+        // }
 
         map2state(renderedMap, next_state);
 
-        // fprintf(stderr, "\n[act()]: after action\n\n");
-        // print_state(*next_state);
 
     }
 
@@ -947,11 +951,15 @@ class Map{
                 else if(ch == 'x' || ch == 'X'){
                     state->boxPos.set(size_t(offset++), true);
                 }
-                else if(ch == 'o' || ch == 'O' || '!'){
+                else if(ch == 'o' || ch == 'O'){
                     offset++;
                     state->row = row;
                     state->col = col;
-                }       
+                }
+                else if(ch == '!'){
+                    state->row = row;
+                    state->col = col;                    
+                }
             }             
 
             col++;
@@ -1232,33 +1240,36 @@ class Solver{
         list<Action> action_list;
         nextStateQueue.push(map->get_state());
 
-
         curAction.row = MAP_COORD_RSRV;
         curAction.col = MAP_COORD_RSRV;
         add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
+
+        // fprintf(stderr, "\ninitial state:\n"); 
+        // map->print_state(map->get_state());  
+        // exit(1);      
 
         while (!nextStateQueue.empty()) {
             probe_vstdCount++;
             probe_get_nextStateQueue_max_size(nextStateQueue.size());
 
+
             state = nextStateQueue.front();
             nextStateQueue.pop();
 
-
-
-            auto start = high_resolution_clock::now();
-
             map->get_available_actions(state, &action_list); 
 
-            auto stop = high_resolution_clock::now();
-            auto duration = duration_cast<microseconds>(stop - start);
-            // fprintf(stderr, "get_available_actions(): %d us\n", duration.count());
+            
+            // int n = 0; //313230;
+            // if(probe_vstdCount > n){
+            //     fprintf(stderr, "\n-----------------------------\n"); 
+            //     map->print_state(state);
+            //     print_action_list(action_list);
+            // }
 
 
-
-            // fprintf(stderr, "\n[explore()]: print_action_list:\n\n"); 
-            // print_action_list(action_list);
-
+            // if(probe_vstdCount > n + 200){
+            //     exit(1);
+            // }
 
 
             while(!action_list.empty()){
@@ -1266,18 +1277,13 @@ class Solver{
                 curAction = action_list.front();
                 action_list.pop_front();
 
-
-
-                start = high_resolution_clock::now();
-
                 map->act(state, curAction, &nextState); 
 
-                stop = high_resolution_clock::now();
-                duration = duration_cast<microseconds>(stop - start);
-                // fprintf(stderr, "   act(): %d us\n", duration.count());
-                
-                
-                
+                // if(probe_vstdCount > n){
+                //     fprintf(stderr, "\nafter act()\n"); 
+                //     map->print_state(nextState);
+                    
+                // }
                 
                 if(map->is_done(nextState)){
                     *doneState = nextState;
@@ -1287,28 +1293,9 @@ class Solver{
                     return true;
                 } 
 
-
-                start = high_resolution_clock::now();
-
                 isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState);
-
-                stop = high_resolution_clock::now();
-                duration = duration_cast<microseconds>(stop - start);
-                // fprintf(stderr, "   is_state_visited(): %d us\n", duration.count());
-                                
-
                 if(!isStVstd){ 
-
-                    start = high_resolution_clock::now();
-
                     add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction);  
-
-                    stop = high_resolution_clock::now();
-                    duration = duration_cast<microseconds>(stop - start);
-                    // fprintf(stderr, "       add_visited_state(): %d us\n", duration.count());
-                            
-                            
-                      
                     nextStateQueue.push(nextState);
                 }    
             }
