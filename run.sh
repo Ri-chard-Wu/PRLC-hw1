@@ -1,16 +1,16 @@
 
 cd ~/hw1
-make clean
-make 2>make-stderr.out
 
-# rm hw1
-# g++ -std=c++17 -O3 -pthread -fopenmp hw1.cc -o hw1
+# make clean
+# make 2>make-stderr.out
+
+g++ -std=c++17 -O3 -pthread -fopenmp ${2}.cc -o ${2} 2>make-stderr.out
 
 echo "==================================="
 echo "=             Run hw1             ="
 echo "==================================="
 
-srun -n 1 -c 5 ./hw1 ./samples/${1}.txt 2> run-stderr.out 1> answer.txt
+srun -n 1 -c 5 ./${2} ./samples/${1}.txt 2> run-stderr.out 1> answer.txt
 
 
 echo "==================================="

@@ -487,6 +487,9 @@ class Map{
         if(is_dead_corner(nextRenderedMap, x_pos, action.dir)){
             return true;
         }
+        else if(is_dead_wall(nextRenderedMap, x_pos, action.dir)){
+            
+        }
         // else if(is_pushPos_unreachable(o_pos, x_pos)){
         //     fprintf(stderr, "\n[is_dead_action()] is_pushPos_unreachable.\n\n");
         //     return true;
@@ -495,6 +498,63 @@ class Map{
         return false;         
     }
 
+    void is_dead_wall(char* renderedMap, Pos x_pos, Dir pushDir){
+        // renderedMap has no 'o', and has the target 'x' removed.
+        int trgtTileCnt, xCnt;
+        int adjDir1, adjDir2;
+        Pos probePos, wallProbePos;
+        // bool isTwoSideBounded, isOneSideBounded;
+        bool isNotBounded;
+
+
+        move(x_pos, pushDir, &probePos);
+        mapObj = get_map_object(renderedMap, probePos);
+        if(mapObj != '#')break;
+
+
+
+        adjDir1 = (((int)pushDir)+1)%4;
+        adjDir2 = (((int)pushDir)+3)%4;
+        
+        // isTwoSideBounded = true;
+
+        for(int adjDir=0; adjDir<=4; adjDir++){
+            if(adjDir != adjDir1 || adjDir != adjDir2) continue;
+
+            trgtTileCnt = 0;
+            xCnt = 0;
+            probePos = x_pos;
+            isNotBounded = false;
+
+            move(probePos, adjDir, &probePos);
+            mapObj = get_map_object(renderedMap, probePos);  
+
+            while(mapObj != '#'){
+                
+                move(probePos, adjDir, &wallProbePos);
+                mapObj = get_map_object(renderedMap, wallProbePos);
+                if(mapObj == ' ' ||mapObj == '.'){
+                    isNotBounded = true;
+                    break;
+                } 
+
+                move(probePos, adjDir, &probePos);
+                mapObj = get_map_object(renderedMap, probePos);
+            }
+
+            if(isNotBounded) break;
+
+        }
+
+
+
+        if(!isNotBounded){return true;}
+
+
+    
+        
+
+    }
 
 
     void copy_map(char* fromMap, char* toMap){

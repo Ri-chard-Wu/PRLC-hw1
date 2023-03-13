@@ -24,6 +24,8 @@ unsigned int probe_vstdClidCount;
 int probe_nextStateQueue_max_size;
 int probe__add_one_step__calling_count;
 
+
+
 void probe_get_nextStateQueue_max_size(int queueSize){
     if(queueSize > probe_nextStateQueue_max_size){
         probe_nextStateQueue_max_size = queueSize;
@@ -55,6 +57,12 @@ typedef unsigned short poskey_t;
 typedef unsigned char coord_t;
 typedef bitset<64> boxPos_t;
 
+enum Dir{
+    UP,
+    RIGHT,
+    DOWN,
+    LEFT
+};
 
 
 struct State{
@@ -62,6 +70,15 @@ struct State{
     unsigned char row, col;
 };
 
+struct Action{
+    unsigned char row, col;
+    Dir dir;
+};
+
+struct SA{
+    State state;
+    Action action;
+};
 
 struct Pos{
     unsigned char row, col;
@@ -86,17 +103,7 @@ Pos key2pos(poskey_t key){
 }
 
 
-enum Dir{
-    UP,
-    RIGHT,
-    DOWN,
-    LEFT
-};
 
-struct Action{
-    unsigned char row, col;
-    Dir dir;
-};
 
 struct ActionNode{
     Action action;
@@ -211,7 +218,7 @@ class Map{
                 if(col > colMax) colMax = col;
                 col=0;
             }
-            else if(ch != '\n' && ch != EOF && ch != '#' && ch != '@' && ch != '!') {
+            else if(ch != '\n' && ch != EOF && ch != '#') {
                 spaceNum++;
             }
 
@@ -264,9 +271,6 @@ class Map{
             else if(ch == 'X' || ch == 'O' || ch == '.'){
                 map[offset++] = '.';
             }
-            else if(ch == '@' || ch == '!'){
-                map[offset++] = '@';
-            }            
             else{
                 map[offset++] = ' ';
             }  
@@ -313,7 +317,7 @@ class Map{
                 else if(ch == 'x' || ch == 'X'){
                     state.boxPos.set(size_t(offset++), true);
                 }
-                else if(ch == 'o' || ch == 'O' || ch == '!'){
+                else if(ch == 'o' || ch == 'O'){
                     state.boxPos.reset(size_t(offset++));
                     state.row = row;
                     state.col = col;
@@ -409,10 +413,17 @@ class Map{
         nextPosQueue.push(curPos);
         vstdPosTbl[pos2key(curPos)] = true;
 
+        // fprintf(stderr, "\n[get_available_actions()] before while: \n\n"); 
+
         while(!nextPosQueue.empty()){
             
             curPos = nextPosQueue.front();
             nextPosQueue.pop();
+            
+            // fprintf(stderr, "\n[get_available_actions()] in while, print pos: \n\n"); 
+            // print_pos(curPos);
+
+            
             // vstdPosTbl[pos2key(curPos)] = true;
 
             add_local_action(renderedMap, curPos, action_list); // ok
@@ -431,6 +442,10 @@ class Map{
     void add_local_action(char* renderedMap, Pos curPos, list<Action>* action_list){
         // - Find out what adjacent boxes can be pushed.
         // - Do nothing if no box is adjacent.
+
+        // fprintf(stderr, "\n[add_local_action()]: \n\n"); 
+        // print_pos(curPos);
+        
 
         Pos probe_pos;
         char mapObj;
@@ -455,7 +470,8 @@ class Map{
 
                     if(!is_dead_action(renderedMap, action)){
 
-                        // fprintf(stderr, "\n[add_local_action()] is not dead action.\n\n"); 
+                        // fprintf(stderr, "\n[add_local_action()] is not dead action.\n\n");
+                        // fprintf(stderr, "dir: %d\n", (int)dir); 
                         action_list->push_back(action);
 
                     }
@@ -480,11 +496,25 @@ class Map{
         char* nextRenderedMap = new char[fileLen];
         copy_map(renderedMap, nextRenderedMap);
 
-        // renderedMap has no 'o'.
+
+
+        // fprintf(stderr, "\n[is_dead_action()] after render boxPos:\n\n");
+        // print_map(nextRenderedMap);    
+
+        // fprintf(stderr, "\n[is_dead_action()] print action:\n");
+        // print_action(action);
+
+
         safe_place_object(nextRenderedMap, o_pos, ' '); // remove 'x'.
 
 
-        if(is_dead_corner(nextRenderedMap, x_pos, action.dir)){
+        // fprintf(stderr, "\n[is_dead_action()] after delete the x to be moved:\n\n");
+        // print_map(nextRenderedMap); 
+
+
+
+        if(is_dead_corner(nextRenderedMap, x_pos)){
+            // fprintf(stderr, "\n[is_dead_action()] is_dead_corner.\n\n");
             return true;
         }
         // else if(is_pushPos_unreachable(o_pos, x_pos)){
@@ -503,13 +533,8 @@ class Map{
         }
     }
 
-    bool is_not_space(char ch){
-        return ch == '#' || ch != '@';
-    }
 
-    bool is_dead_corner(char* renderedMap, Pos x_pos, Dir pushDir){
-        // renderedMap has no 'o', and has the target 'x' removed.
-
+    bool is_dead_corner(char* renderedMap, Pos x_pos){
         // Fast path
         // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.' 
 
@@ -520,7 +545,11 @@ class Map{
 
         mapObj_x_pos = get_map_object(renderedMap, x_pos);
 
-        for(int dir=((int)pushDir) - 1; dir <= ((int)pushDir) + 1; dir++){
+        for(int dir=0; dir<=3; dir++){
+
+            // fprintf(stderr, "\n[is_dead_corner()] dir: %d.\n\n", dir);
+
+
 
             dir1 = dir; 
             dir2 = (dir1 + 1)%4;
@@ -708,7 +737,7 @@ class Map{
         
         // fprintf(stderr, "[add_unvisited_nextPos()] mapObj: %c\n", mapObj);
 
-        if(mapObj == '.' || mapObj == ' ' || mapObj == '@'){
+        if(mapObj == '.' || mapObj == ' '){
             if(!is_pos_visited<dictValue_t>(vstdPosTbl, nextPos)){
                 
                 // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) not visited.\n", nextPos.row, nextPos.col);
@@ -827,7 +856,6 @@ class Map{
         if(ch == 'o' || ch == 'O'){
             if(mapObj == ' ') set_map_object(map, pos, 'o');
             else if(mapObj == '.') set_map_object(map, pos, 'O');
-            else if(mapObj == '@') set_map_object(map, pos, '!');
             else{fprintf(stderr, "\n[safe_place_object()]:invalid placement.\n\n"); exit(-1);}
         }
         else if(ch == 'x' || ch == 'X'){
@@ -843,8 +871,6 @@ class Map{
             set_map_object(map, pos, ch);
         }        
     }
-
-
 
     void set_map_object(char* map, Pos pos, char ch){
         map[rowBegins[pos.row] + pos.col] = ch;
@@ -872,7 +898,7 @@ class Map{
                 else if(ch == 'x' || ch == 'X'){
                     state->boxPos.set(size_t(offset++), true);
                 }
-                else if(ch == 'o' || ch == 'O' || '!'){
+                else if(ch == 'o' || ch == 'O'){
                     offset++;
                     state->row = row;
                     state->col = col;
@@ -901,7 +927,7 @@ class Map{
         while(!nextPosQueue.empty()){
             curPos = nextPosQueue.front();
             nextPosQueue.pop();
-            // vstdPosTbl[pos2key(curPos)] = true;
+            
 
             for(int dir=0; dir<=3; dir++){
                 add_unvisited_nextPos<bool>(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
@@ -909,45 +935,9 @@ class Map{
         }
 
         if(is_pos_visited<bool>(&vstdPosTbl, pos2)){
-
-            // if((pos1.row != pos2.row) && (pos1.col != pos2.col)){
-            //     State tmpSt;
-            //     tmpSt.boxPos = state.boxPos;
-
-            //     fprintf(stderr, "\n[is_reachable()] is visited. print pos1 state:\n\n");
-            //     tmpSt.row = pos1.row;
-            //     tmpSt.col = pos1.col;
-            //     print_state(tmpSt);
-
-
-            //     fprintf(stderr, "\n[is_reachable()] is visited. print pos2 state:\n\n");
-            //     tmpSt.row = pos2.row;
-            //     tmpSt.col = pos2.col;
-            //     print_state(tmpSt);                    
-            // }
-
-
-            
             return true;
         }
         else{
-            
-            // if((pos1.row != pos2.row) && (pos1.col != pos2.col)){
-            //     State tmpSt;
-            //     tmpSt.boxPos = state.boxPos;
-
-            //     fprintf(stderr, "\n[is_reachable()] not visited. print pos1 state:\n\n");
-            //     tmpSt.row = pos1.row;
-            //     tmpSt.col = pos1.col;
-            //     print_state(tmpSt);
-
-
-            //     fprintf(stderr, "\n[is_reachable()] not visited. print pos2 state:\n\n");
-            //     tmpSt.row = pos2.row;
-            //     tmpSt.col = pos2.col;
-            //     print_state(tmpSt);             
-            // }
-
             return false;
         }
     }
@@ -1136,138 +1126,329 @@ class Solver{
     Solver(char* filename){
         map = new Map(filename);
         map->print_map(map->map);
+        
+        done = false;
+        start_thread();
+        join_thread();
+        
+        recover_steps();
+        output_steps();
 
-        State doneState;
-        Action doneAction;
-        if(explore(&doneState, &doneAction)){
-            recover_steps(doneState, doneAction);
-            output_steps();
-        }
         probe_print_stat();
+        
     }
 
 
 
 
-    bool explore(State* doneState, Action* doneAction){
+    void start_thread()
+    {
+        int ret;
+        entryArg* argPtr;
 
-        bool isStVstd;
-        State state, nextState;
-        Action curAction;
-        list<Action> action_list;
-        nextStateQueue.push(map->get_state());
-
-
-        curAction.row = MAP_COORD_RSRV;
-        curAction.col = MAP_COORD_RSRV;
-        add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
-
-        while (!nextStateQueue.empty()) {
-            probe_vstdCount++;
-            probe_get_nextStateQueue_max_size(nextStateQueue.size());
-
-            state = nextStateQueue.front();
-            nextStateQueue.pop();
+        mutex_vstdStTbl = PTHREAD_MUTEX_INITIALIZER; 
+        mutex_vstdClidStTbl = PTHREAD_MUTEX_INITIALIZER; 
+        mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER; 
+        mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER;     
+        
 
 
+        nxStThrdNum = 1;
+        nxStThrds = new pthread_t[nxStThrdNum];
+        for(int i=0;i<nxStThrdNum;i++){
+            argPtr = new entryArg;
+            argPtr->objPtr = this;
+            argPtr->threadId = i;
 
-            auto start = high_resolution_clock::now();
-
-            map->get_available_actions(state, &action_list); 
-
-            auto stop = high_resolution_clock::now();
-            auto duration = duration_cast<microseconds>(stop - start);
-            // fprintf(stderr, "get_available_actions(): %d us\n", duration.count());
-
-
-
-            // fprintf(stderr, "\n[explore()]: print_action_list:\n\n"); 
-            // print_action_list(action_list);
-
-
-
-            while(!action_list.empty()){
-                
-                curAction = action_list.front();
-                action_list.pop_front();
-
-
-
-                start = high_resolution_clock::now();
-
-                map->act(state, curAction, &nextState); 
-
-                stop = high_resolution_clock::now();
-                duration = duration_cast<microseconds>(stop - start);
-                // fprintf(stderr, "   act(): %d us\n", duration.count());
-                
-                
-                
-                
-                if(map->is_done(nextState)){
-                    *doneState = nextState;
-                    *doneAction = curAction;
-                    fprintf(stderr, "\n[explore()]: done!\n\n"); 
-                    map->print_state(nextState);
-                    return true;
-                } 
-
-
-                start = high_resolution_clock::now();
-
-                isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState);
-
-                stop = high_resolution_clock::now();
-                duration = duration_cast<microseconds>(stop - start);
-                // fprintf(stderr, "   is_state_visited(): %d us\n", duration.count());
-                                
-
-                if(!isStVstd){ 
-
-                    start = high_resolution_clock::now();
-
-                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction);  
-
-                    stop = high_resolution_clock::now();
-                    duration = duration_cast<microseconds>(stop - start);
-                    // fprintf(stderr, "       add_visited_state(): %d us\n", duration.count());
-                            
-                            
-                      
-                    nextStateQueue.push(nextState);
-                }    
-            }
-
+            ret = pthread_create(&nxStThrds[i], NULL, thrd_cons_nxStQueue_entry, (void *)argPtr);
+            if(ret != 0) printf("create thread failed.\n");
         }
 
+
+        saThrdNum = 3;
+        
+        mutex_unchkNxSt_lists = new pthread_mutex_t[saThrdNum];
+        for(int i=0;i<saThrdNum;i++)mutex_unchkNxSt_lists[i] = PTHREAD_MUTEX_INITIALIZER;
+
+        unchkNxSt_lists = new list<State>[saThrdNum];
+        saThrds = new pthread_t[saThrdNum];
+        for(int i=0;i<saThrdNum;i++){
+            argPtr = new entryArg;
+            argPtr->objPtr = this;
+            argPtr->threadId = i;
+
+            ret = pthread_create(&saThrds[i], NULL, thrd_cons_sa_lists_entry, (void *)argPtr);
+            if(ret != 0) printf("create thread failed.\n");
+        }
+    }
+
+
+    void join_thread()
+    {
+        for (int i = 0; i < nxStThrdNum; i++){
+            pthread_join(nxStThrds[i], NULL);
+        }        
+
+        for (int i = 0; i < saThrdNum; i++){
+            pthread_join(saThrds[i], NULL);
+        }  
+
+ 
+    }
+
+
+
+    static void * thrd_cons_nxStQueue_entry(void *arg) {
+        entryArg *argPtr = (entryArg *)arg;
+
+        int threadId = argPtr->threadId;
+        Solver *objPtr = (Solver *)argPtr->objPtr;
+        objPtr->thrd_cons_nxStQueue(threadId);
+        
+        return NULL;
+    }
+
+
+    static void * thrd_cons_sa_lists_entry(void *arg) {
+        entryArg *argPtr = (entryArg *)arg;
+
+        int threadId = argPtr->threadId;
+        Solver *objPtr = (Solver *)argPtr->objPtr;
+        objPtr->thrd_cons_sa_lists(threadId);
+        
+        return NULL;
+    }
+
+
+
+
+    void thrd_cons_nxStQueue(int threadId){
+        
+        list<Action> action_list;
+        State state;
+        SA sa;
+        bool has_new_nextState_data;
+        
+        while(!done){
+            
+            has_new_nextState_data = false;
+
+            pthread_mutex_lock(&mutex_nextStateQueue);
+            if(!nextStateQueue.empty()){
+               
+                state = nextStateQueue.front();
+                nextStateQueue.pop();
+                has_new_nextState_data = true;
+            }
+            pthread_mutex_unlock(&mutex_nextStateQueue);
+            
+        
+            if(has_new_nextState_data){
+
+                map->get_available_actions(state, &action_list);
+                
+                thrd_sa_distributer(state, &action_list);
+             
+            }
+        }
+    }
+
+
+
+
+    void thrd_sa_distributer(State state, list<Action>* action_list){
+
+        int minLenThrdId, minLen;
+        bool is_push_ok;
+        State nextSt;
+        Action curAction;
+
+        list<State> nextSts;
+
+        // fprintf(stderr, "\n[thrd_sa_distributer()] action_list.size(): %d\n",
+        //                         (int)action_list->size());
+        
+
+        while(!action_list->empty()){
+            curAction = action_list->front();
+            action_list->pop_front();            
+            map->act(state, curAction, &nextSt);  
+
+            if(map->is_done(nextSt)){
+                doneState = nextSt;
+                doneAction = curAction;
+                done = true;
+
+                fprintf(stderr, "\ndone!\n\n"); 
+                map->print_state(doneState);   
+                return;      
+            } 
+            nextSts.push_back(nextSt);
+        }
+
+
+        for(int i=0; i<saThrdNum; i++){pthread_mutex_lock(&mutex_unchkNxSt_lists[i]);}
+
+        while(!nextSts.empty()){
+
+            nextSt = nextSts.front();
+            nextSts.pop_front();
+
+            is_push_ok = false;
+            minLenThrdId = 0;
+            minLen = 10000;            
+            for(int i=0; i<saThrdNum; i++){
+
+                if(_is_boxPos_in_list(nextSt.boxPos, unchkNxSt_lists[i])){
+                    unchkNxSt_lists[i].push_back(nextSt);
+                    is_push_ok = true;
+                    break;
+                }
+
+                if(minLen > unchkNxSt_lists[i].size()){
+                    minLen = unchkNxSt_lists[i].size();
+                    minLenThrdId = i;
+                }
+            }
+
+            if(!is_push_ok){
+                unchkNxSt_lists[minLenThrdId].push_back(nextSt);
+            }
+        }
+
+        for(int i=0; i<saThrdNum; i++){pthread_mutex_unlock(&mutex_unchkNxSt_lists[i]);}
+    }
+
+
+
+    bool _is_boxPos_in_list(boxPos_t boxPos, list<State> st_list){
+        State probe_st;
+        while(!st_list.empty()){
+            probe_st = st_list.front();
+            st_list.pop_front();
+            if(probe_st.boxPos == boxPos) return true;
+        }
         return false;
     }
 
 
 
+
+
+    void thrd_cons_sa_lists(int threadId){
+
+        bool has_new_sa_data;
+        Action curAction;
+        State nextState;
+
+
+        if(threadId == 0){
+            pthread_mutex_lock(&mutex_nextStateQueue);
+            nextStateQueue.push(map->get_state());  
+            pthread_mutex_unlock(&mutex_nextStateQueue);
+
+            curAction.row = MAP_COORD_RSRV;
+            curAction.col = MAP_COORD_RSRV;
+            add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
+        }
+
+        while(!done){ 
+
+
+            has_new_sa_data = false;
+
+
+            pthread_mutex_lock(&mutex_unchkNxSt_lists[threadId]);
+            if(!unchkNxSt_lists[threadId].empty()){
+                nextState = unchkNxSt_lists[threadId].front(); 
+                unchkNxSt_lists[threadId].pop_front();  
+                has_new_sa_data = true;
+            }
+            pthread_mutex_unlock(&mutex_unchkNxSt_lists[threadId]);
+
+
+
+            if(has_new_sa_data){
+                
+                if(!is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState)){ 
+
+                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); 
+                    
+                    pthread_mutex_lock(&mutex_nextStateQueue);
+                    nextStateQueue.push(nextState);  
+                    pthread_mutex_unlock(&mutex_nextStateQueue);
+                }  
+            }
+
+        }
+    }
+    
+
+    bool is_state_visited(unordered_map<bitset<64>, Action> *vstdStTbl, 
+                    unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
+
+        
+        // pthread_mutex_lock(&mutex_vstdStTbl);
+        if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){
+            // pthread_mutex_unlock(&mutex_vstdStTbl);
+            return false;
+        }
+        Pos vstdPos;
+        Action preVstdAction = (*vstdStTbl)[state.boxPos];
+        // pthread_mutex_unlock(&mutex_vstdStTbl);        
+        
+
+        map->move_by_action(preVstdAction, &vstdPos);
+        Pos curPos{.row{state.row}, .col{state.col}};
+        if(map->is_reachable(state, curPos, vstdPos)){return true;}
+        
+
+
+        // pthread_mutex_lock(&mutex_vstdClidStTbl);
+        if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){
+            // pthread_mutex_unlock(&mutex_vstdClidStTbl);      
+            return false;
+        }
+        ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
+        // pthread_mutex_unlock(&mutex_vstdClidStTbl);        
+        
+
+        while(cur_ptr){
+            Action preVstdAction = cur_ptr->action;
+            map->move_by_action(preVstdAction, &vstdPos);
+            if(map->is_reachable(state, curPos, vstdPos)){return true;}
+            cur_ptr = cur_ptr->next;
+        }
+
+
+        return false;
+    }
+
+
     void add_visited_state(unordered_map<bitset<64>, Action> *vstdStTbl, 
                     unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
         
+        bool is_in_vstdStTable;
 
-        if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){ // not inside.
-            
+        pthread_mutex_lock(&mutex_vstdStTbl);
+        is_in_vstdStTable = is_in_vstdStTbl(vstdStTbl, state.boxPos);
+        
+        if(!is_in_vstdStTable){ 
             (*vstdStTbl)[state.boxPos] = action;
-        }else{
+            pthread_mutex_unlock(&mutex_vstdStTbl); 
+        }
+        else{
+            pthread_mutex_unlock(&mutex_vstdStTbl);
 
+            pthread_mutex_lock(&mutex_vstdClidStTbl);
             probe_vstdClidCount++;
             insert_ActionNode(vstdClidStTbl, state, action);
+            pthread_mutex_unlock(&mutex_vstdClidStTbl);            
         }
     }
 
 
     void insert_ActionNode(unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
-        
-        // Pos pos;
-        // pos.row = state.row;
-        // pos.col = state.col;
-
-        // ActionNode *cur = new ActionNode;
-        // cur->pos = pos;
 
         ActionNode *cur = new ActionNode;
         cur->action = action;
@@ -1280,58 +1461,6 @@ class Solver{
         }
 
         (*vstdClidStTbl)[state.boxPos] = cur;
-    }
-
-
-
-
-    bool is_state_visited(unordered_map<bitset<64>, Action> *vstdStTbl, 
-                    unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
-
-
-
-        // key not found -> haven't been visited.
-        if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
-
-
-
-
-        Pos vstdPos;
-        Action preVstdAction = (*vstdStTbl)[state.boxPos];
-        map->move_by_action(preVstdAction, &vstdPos);
-        Pos curPos{.row{state.row}, .col{state.col}};
-
-        // Have same box positions, and mutually 
-            // reachable player positions *with the head* -> deemed visited.
-        if(map->is_reachable(state, curPos, vstdPos)){return true;}
-        
-
-
-
-
-
-
-        // key not found -> haven't been visited.
-        if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){return false;}
-
-
-
-
-
-  
-        ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
-        while(cur_ptr){
-            Action preVstdAction = cur_ptr->action;
-            map->move_by_action(preVstdAction, &vstdPos);
-
-            // Have same box positions, and mutually 
-                // reachable player positions *with other collided pos*. 
-            if(map->is_reachable(state, curPos, vstdPos)){return true;}
-            cur_ptr = cur_ptr->next;
-        }
-
-
-        return false;
     }
 
 
@@ -1349,10 +1478,6 @@ class Solver{
 
 
 
-
-
-
-
     void output_steps(){
         for(int i = stepsOfst - 1; i >= 0; i--){
             printf("%c", stepsBuf[i]);
@@ -1360,7 +1485,7 @@ class Solver{
         printf("\n");
     }
 
-    void recover_steps(State doneState, Action doneAction){
+    void recover_steps(){
 
         stepsBufSize = 1024;
         stepsBuf = new char[stepsBufSize];
@@ -1528,9 +1653,10 @@ class Solver{
     }
     
 
-
-
-
+    struct entryArg{
+        Solver* objPtr;
+        int threadId;
+    };
 
     int stepsBufSize;
     char* stepsBuf;
@@ -1539,9 +1665,33 @@ class Solver{
     unordered_map<bitset<64>, Action> vstdStTbl;
     unordered_map<bitset<64>, ActionNode*> vstdClidStTbl;
     queue<State> nextStateQueue;
-    
 
     Map* map;
+
+    
+    pthread_mutex_t* mutex_unchkNxSt_lists;
+    pthread_mutex_t mutex_vstdStTbl;
+    pthread_mutex_t mutex_vstdClidStTbl;
+    pthread_mutex_t mutex_nextStateQueue;
+
+
+    bool done;
+    State doneState;
+    Action doneAction;
+
+    list<State>* unchkNxSt_lists;
+    
+    int saThrdNum;
+    int nxStThrdNum;
+    // int saDstbThrdNum;
+
+    pthread_t* nxStThrds;
+    pthread_t* saThrds;
+    // pthread_t* saDstbThrds;
+
+
+
+
 };
 
 
