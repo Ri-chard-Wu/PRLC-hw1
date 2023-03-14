@@ -76,6 +76,8 @@ void terminate(int code){
 typedef unsigned short poskey_t;
 typedef unsigned char coord_t;
 typedef bitset<64> boxPos_t;
+typedef bitset<64> reachablePos_t;
+typedef bitset<128> state_t;
 
 
 
@@ -121,6 +123,11 @@ Pos key2pos(poskey_t key){
     pos.row = (char)((key >> 8) & mask);
 
     return pos;
+}
+
+
+state_t state2key(State st){
+    return (state_t) (st.boxPos.to_string() + st.reachablePos.to_string());
 }
 
 
@@ -434,7 +441,7 @@ class Map{
         char mapObj;
 
         queue<Pos> nextPosQueue;
-        concurrent_unordered_map<poskey_t, bool> vstdPosTbl;
+        unordered_map<poskey_t, bool> vstdPosTbl;
 
         Pos curPos{.row{state.row}, .col{state.col}};
         Pos nextPos;
@@ -670,7 +677,7 @@ class Map{
 
 
     template<class dictValue_t>
-    bool is_pos_visited(concurrent_unordered_map<poskey_t, dictValue_t> *vstdPosTbl, Pos pos){
+    bool is_pos_visited(unordered_map<poskey_t, dictValue_t> *vstdPosTbl, Pos pos){
         return !(vstdPosTbl->find(pos2key(pos)) == vstdPosTbl->end());
     }
 
@@ -679,7 +686,7 @@ class Map{
 
     template<class dictValue_t>
     bool add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
-                concurrent_unordered_map<poskey_t, dictValue_t> *vstdPosTbl, queue<Pos> *nextPosQueue){
+                unordered_map<poskey_t, dictValue_t> *vstdPosTbl, queue<Pos> *nextPosQueue){
   
         Pos nextPos;
         char mapObj;
@@ -725,10 +732,18 @@ class Map{
     }
 
 
-    void find_reachable_pos(char* renderedMap, State* state){
+    void find_reachable_pos(char* renderedMap, Pos o_pos, State* state){
 
-        // char* renderedMap = new char[fileLen];
-        // render_boxPos(renderedMap, state->boxPos);  
+     
+        // fprintf(stderr, "------------------------------------------------\n");
+        // fprintf(stderr, "[find_reachable_pos()] debug.  before set 'r', renderedMap: \n");
+        // print_map(renderedMap);
+
+
+
+
+
+
         char mapObj;
 
         queue<Pos> nextPosQueue;
@@ -736,27 +751,32 @@ class Map{
         
 
         Pos probe_pos, curPos;
-        curPos.row = state->row;
-        curPos.col = state->col;
+        curPos.row = o_pos.row;
+        curPos.col = o_pos.col;
         
         // safe_place_object(renderedMap, curPos, 'o');
         nextPosQueue.push(curPos);
         vstdPosTbl[pos2key(curPos)] = true;
-                        
+    
+
         while(!nextPosQueue.empty()){
+
+    
             curPos = nextPosQueue.front();
             nextPosQueue.pop();
 
             for(int dir=0; dir<=3; dir++){
+            
 
-                move(curPos, dir, &probe_pos);
+                move(curPos, (Dir)dir, &probe_pos);
                 mapObj = get_map_object(renderedMap, probe_pos); 
+
 
                 if(mapObj == '.' || mapObj == ' ' || mapObj == '@'){
 
-                    if(!is_pos_visited<dictValue_t>(vstdPosTbl, probe_pos)){
-                        nextPosQueue->push(probe_pos);
-                        (*vstdPosTbl)[pos2key(probe_pos)] = true;
+                    if(!is_pos_visited<bool>(&vstdPosTbl, probe_pos)){
+                        nextPosQueue.push(probe_pos);
+                        vstdPosTbl[pos2key(probe_pos)] = true;
 
                         if(mapObj != '@'){set_map_object(renderedMap, probe_pos, 'r');}
                         else{set_map_object(renderedMap, probe_pos, 'R');}
@@ -765,12 +785,57 @@ class Map{
             }
         }
 
+        // fprintf(stderr, "[find_reachable_pos()] debug.  after set 'r', renderedMap: \n");
+        // print_map(renderedMap);
+
+
         map2state(renderedMap, state);
+
+
+        
+
+
+
+
+        // fprintf(stderr, "[find_reachable_pos()] debug. re-render: \n");
+
+        // char* debugMap = new char[fileLen];
+
+        // render_boxPos(debugMap, state->boxPos);
+        // Pos debugPos;
+        // debugPos.row = state->row;
+        // debugPos.col = state->col;
+        // safe_place_object(debugMap, debugPos, 'o');
+        // print_map(debugMap);
+
+        // render_reachablePos(debugMap, state->reachablePos);
+        // print_map(debugMap);
+
+        // exit(1);
         
     }
 
+    void render_reachablePos(char *renderedMap, reachablePos_t reachablePos){
 
-    void render_boxPos(char *renderedMap, bitset<64> boxPos){
+        char ch;
+        int offset = 0;
+
+        for (int i=0; i<fileLen-1; i++){
+
+            ch = map[i];
+            
+            if(ch == ' ' || ch == '.'){
+                if(reachablePos[offset++] == 1) ch = 'r';
+            }
+            else if(ch == '@'){
+                if(reachablePos[offset++] == 1) ch = 'R';
+            }
+            
+            renderedMap[i] = ch;
+        }
+    }
+
+    void render_boxPos(char *renderedMap, boxPos_t boxPos){
 
         char ch;
         int offset = 0;
@@ -789,6 +854,7 @@ class Map{
             renderedMap[i] = ch;
         }
     }
+
 
     void reset_renderedMap(char* renderedMap){
         for (int i=0; i<fileLen-1; i++){
@@ -809,16 +875,16 @@ class Map{
         
         o_pos.row = action.row;
         o_pos.col = action.col;
-        move(o_pos, action.dir, &x_pos); // x_pos: current position of 'x'
+        move(o_pos, action.dir, &o_pos); // x_pos: current position of 'x'
 
         // replace 'x' in old position by 'o'.
-        mapObj = get_map_object(renderedMap, x_pos); 
-        if(mapObj == 'x') set_map_object(renderedMap, x_pos, 'o');
-        else if(mapObj == 'X') set_map_object(renderedMap, x_pos, 'O');
+        mapObj = get_map_object(renderedMap, o_pos); 
+        if(mapObj == 'x') set_map_object(renderedMap, o_pos, 'o');
+        else if(mapObj == 'X') set_map_object(renderedMap, o_pos, 'O');
         else {fprintf(stderr, "[act()] mapObj != 'x' \n"); exit(-1);}
 
         // place 'x' on its new position. 
-        move(x_pos, action.dir, &x_pos);
+        move(o_pos, action.dir, &x_pos);
         mapObj = get_map_object(renderedMap, x_pos); 
         if(mapObj == ' ') set_map_object(renderedMap, x_pos, 'x');
         else if(mapObj == '.') set_map_object(renderedMap, x_pos, 'X');
@@ -831,8 +897,7 @@ class Map{
         // }
 
         // map2state(renderedMap, next_state);
-
-        find_reachable_pos(renderedMap, next_state);
+        find_reachable_pos(renderedMap, o_pos, next_state);
 
 
     }
@@ -876,12 +941,14 @@ class Map{
 
         state->boxPos = 0b0;
         state->reachablePos = 0b0;
-        int ofst_x, ofst_o = 0;
+        int ofst_x=0, ofst_o = 0;
         int row = 0, col = 0;
 
         for(int i=0; i<fileLen-1;i++){
             
             ch = renderedMap[i]; 
+
+            // fprintf(stderr, "\n[map2state()] ofst_o: %d, ofst_x: %d\n", ofst_o, ofst_x);
 
             if(ch == '\n'){ row++; col = 0; continue; }
 
@@ -967,7 +1034,7 @@ class Map{
         char mapObj;
 
         queue<Pos> nextPosQueue;
-        concurrent_unordered_map<poskey_t, bool> vstdPosTbl;
+        unordered_map<poskey_t, bool> vstdPosTbl;
         
         Pos probe_pos, curPos = pos1;
         nextPosQueue.push(curPos);
@@ -1048,7 +1115,7 @@ class Map{
         render_boxPos(renderedMap, boxPos);
 
         queue<Pos> nextPosQueue;
-        concurrent_unordered_map<poskey_t, poskey_t> vstdPosTbl;
+        unordered_map<poskey_t, poskey_t> vstdPosTbl;
 
         Pos curPos = fromPos, nextPos;
         poskey_t curPosKey;
@@ -1195,30 +1262,10 @@ class Solver{
         int ret;
         entryArg* argPtr;
 
-        mutex_vstdStTbl = PTHREAD_MUTEX_INITIALIZER; 
-        mutex_vstdClidStTbl = PTHREAD_MUTEX_INITIALIZER; 
-        mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER; 
-        mutex_nextStateQueue = PTHREAD_MUTEX_INITIALIZER;     
-        
-
-
-        // nxStThrdNum = 1;
-        // // nxStThrds = new pthread_t[nxStThrdNum];
-        // // for(int i=0;i<nxStThrdNum;i++){
-        // //     argPtr = new entryArg;
-        // //     argPtr->objPtr = this;
-        // //     argPtr->threadId = i;
-
-        // //     ret = pthread_create(&nxStThrds[i], NULL, thrd_cons_nxStQueue_entry, (void *)argPtr);
-        // //     if(ret != 0) printf("create thread failed.\n");
-        // // }
-
 
         saThrdNum = 5;
         
-        mutex_sa_lists = new pthread_mutex_t[saThrdNum];
-        for(int i=0;i<saThrdNum;i++)mutex_sa_lists[i] = PTHREAD_MUTEX_INITIALIZER;
-
+       
         sa_lists = new concurrent_queue<SA>[saThrdNum];
         saThrds = new pthread_t[saThrdNum];
         for(int i=0;i<saThrdNum;i++){
@@ -1347,7 +1394,8 @@ class Solver{
         if(threadId == 0){
             curAction.row = MAP_COORD_RSRV;
             curAction.col = MAP_COORD_RSRV;
-            add_visited_state(&nextStateQueue, &vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
+            nextStateQueue.push(map->get_state());
+            vstdStTbl[state2key(map->get_state())] = curAction;            
         }
 
 
@@ -1365,13 +1413,10 @@ class Solver{
             }
 
 
-
             if(has_new_sa_data){
 
                 map->act(curSt, curAction, &nextSt); 
-                // map->find_reachable_pos(&nextSt);
-
-
+            
                 if(map->is_done(nextSt)){
                     doneState = nextSt;
                     doneAction = curAction;
@@ -1382,103 +1427,53 @@ class Solver{
                     return;      
                 } 
 
-                // add_visited_state(&nextStateQueue, &vstdStTbl, &vstdClidStTbl, nextSt, curAction);
-                // add_visited_state(&nextStateQueue, &vstdStTbl, nextSt, curAction);
-
-
-                if(!is_in_vstdStTbl(vstdStTbl, state2key(nextSt))){
-                    nextStateQueue->push(nextSt);
-                    (*vstdStTbl)[state2key(nextSt)] = action;
+                if(!is_in_vstdStTbl(&vstdStTbl, state2key(nextSt))){
+                    nextStateQueue.push(nextSt);
+                    vstdStTbl[state2key(nextSt)] = curAction;
                     return;
                 }
 
-                
             }
         }
     }
-    
-
-    void add_visited_state(concurrent_queue<State>* nextStateQueue , 
-                concurrent_unordered_map<state_t, Action> *vstdStTbl, 
-                    State state, Action action){
 
 
 
-        if(!is_in_vstdStTbl(vstdStTbl, state2key(state))){
-            nextStateQueue->push(state);
-            (*vstdStTbl)[state.boxPos] = action;
-            return;
-        }
+    // void add_visited_state(concurrent_queue<State>* nextStateQueue , 
+    //             concurrent_unordered_map<state_t, Action> *vstdStTbl, 
+    //                 State state, Action action){
+
+    //     if(!is_in_vstdStTbl(vstdStTbl, state2key(state))){
+    //         nextStateQueue->push(state);
+    //         (*vstdStTbl)[state2key(state)] = action;
+    //         return;
+    //     }
+    // }
 
 
 
-        // Pos vstdPos;
-        // Action preVstdAction = (*vstdStTbl)[state.boxPos];
+    // void insert_ActionNode(concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
 
-        // map->move_by_action(preVstdAction, &vstdPos);
-        // Pos curPos{.row{state.row}, .col{state.col}};
-        // if(map->is_reachable(state, curPos, vstdPos)){return;}
-        
+    //     ActionNode *cur = new ActionNode;
+    //     cur->action = action;
 
+    //     if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){
+    //         cur->next = NULL;
+    //     }
+    //     else{
+    //         cur->next = (*vstdClidStTbl)[state.boxPos];
+    //     }
 
+    //     probe_vstdClidCount++;
+    //     (*vstdClidStTbl)[state.boxPos] = cur;
 
-
-        // if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){
-        //     nextStateQueue->push(state);
-        //     insert_ActionNode(vstdClidStTbl, state, action);
-        //     return;
-        // }
-
-
-
-
-        // ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
-        // while(cur_ptr){
-        //     Action preVstdAction = cur_ptr->action;
-        //     map->move_by_action(preVstdAction, &vstdPos);
-        //     if(map->is_reachable(state, curPos, vstdPos)){return;}
-        //     cur_ptr = cur_ptr->next;
-        // }
+    // }
 
 
 
-        // nextStateQueue->push(state);
-        // insert_ActionNode(vstdClidStTbl, state, action);
-        // return;
-    }
 
-
-
-    void insert_ActionNode(concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
-
-        ActionNode *cur = new ActionNode;
-        cur->action = action;
-
-        if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){
-            cur->next = NULL;
-        }
-        else{
-            cur->next = (*vstdClidStTbl)[state.boxPos];
-        }
-
-        probe_vstdClidCount++;
-        (*vstdClidStTbl)[state.boxPos] = cur;
-
-    }
-
-
-    
-
-    bool is_in_vstdClidStTbl(concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, 
-                                                                            bitset<64> boxPos){
-        bool ret = !(vstdClidStTbl->find(boxPos) == vstdClidStTbl->end());
-        return ret;
-
-    }
-
-
-    bool is_in_vstdStTbl(concurrent_unordered_map<bitset<64>, Action> *vstdStTbl, bitset<64> boxPos){
-        bool ret = !(vstdStTbl->find(boxPos) == vstdStTbl->end()); 
+    bool is_in_vstdStTbl(concurrent_unordered_map<state_t, Action> *vstdStTbl, state_t stateKey){
+        bool ret = !(vstdStTbl->find(stateKey) == vstdStTbl->end()); 
         return ret;
     }
 
@@ -1555,15 +1550,18 @@ class Solver{
     }
 
 
+
+
+
     int find_vstd_prevStateAction(State rvrsState, State* prevState, Action* prevAction){
         // - Three situations:
         // - 1. both `prevState` and `prevAction found -> code == 0
         // - 2. both `prevState` and `prevAction not found -> code == 1
-        // - 3. `prevAction` not found -> code == 2
+        // - 3. `prevAction` not found -> code == 2 (only for initial state)
 
 
         // - Not in vstdStTbl.
-        if(!is_in_vstdStTbl(&vstdStTbl, rvrsState.boxPos)){return 1;}
+        if(!is_in_vstdStTbl(&vstdStTbl, state2key(rvrsState))){return 1;}
 
 
         // - In vstdStTbl.
@@ -1571,12 +1569,9 @@ class Solver{
         Action  probeAction;
         bool is_initAction = false;
 
-        // get rvrsPos
-        rvrsPos.row = rvrsState.row;
-        rvrsPos.col = rvrsState.col;
 
         // get probePos
-        probeAction = vstdStTbl[rvrsState.boxPos];
+        probeAction = vstdStTbl[state2key(rvrsState)];
 
         // Terminating condition. Initial state has no action. Get init pos of player from map.
         if((probeAction.row == MAP_COORD_RSRV) && (probeAction.row == MAP_COORD_RSRV)){
@@ -1588,49 +1583,15 @@ class Solver{
             map->move_by_action(probeAction, &probePos);
         }
 
-        // See whether rvrsPos and probePos are mutually reachable
-        if(map->is_reachable(rvrsState, rvrsPos, probePos)){
 
-            prevState->boxPos = rvrsState.boxPos;
-            prevState->row = probePos.row;
-            prevState->col = probePos.col;
+        prevState->boxPos = rvrsState.boxPos;
+        prevState->row = probePos.row;
+        prevState->col = probePos.col;
 
-            *prevAction = probeAction;
-            if(is_initAction) return 2;
-            else return 0;
-        }
+        *prevAction = probeAction;
+        if(is_initAction) return 2;
+        else return 0;
 
-
-
-        // - Not in vstdClidStTbl.
-        if(!is_in_vstdClidStTbl(&vstdClidStTbl, rvrsState.boxPos)){return 1;}
-
-
-
-
-        // - In vstdClidStTbl.
-        ActionNode *cur_ptr = vstdClidStTbl[rvrsState.boxPos];
-
-        while(cur_ptr){
-
-            probeAction = cur_ptr->action;
-
-            map->move_by_action(probeAction, &probePos);         
- 
-            if(map->is_reachable(rvrsState, rvrsPos, probePos)){
-
-                prevState->boxPos = rvrsState.boxPos;
-                prevState->row = probePos.row;
-                prevState->col = probePos.col;
-
-                *prevAction = probeAction;
-                return 0;                
-            }
-            
-            cur_ptr = cur_ptr->next;
-        }
-
-        return 1;
     }
 
 
@@ -1664,10 +1625,7 @@ class Solver{
         int threadId;
     };
 
-    pthread_mutex_t* mutex_sa_lists;
-    pthread_mutex_t mutex_vstdStTbl;
-    pthread_mutex_t mutex_vstdClidStTbl;
-    pthread_mutex_t mutex_nextStateQueue;
+
 
     // list<SA>* sa_lists;
     concurrent_queue<SA>* sa_lists;
@@ -1685,8 +1643,7 @@ class Solver{
     char* stepsBuf;
     int stepsOfst;
 
-    concurrent_unordered_map<bitset<64>, Action> vstdStTbl;
-    concurrent_unordered_map<bitset<64>, ActionNode*> vstdClidStTbl;
+    concurrent_unordered_map<state_t, Action> vstdStTbl;
     concurrent_queue<State> nextStateQueue;
     
 
