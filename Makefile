@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -O3 -pthread -fopenmp
+CXXFLAGS = -ltbb -std=c++17 -O3 -pthread -fopenmp
 TARGETS = hw1
 
 .PHONY: all

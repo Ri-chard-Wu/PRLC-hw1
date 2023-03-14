@@ -6,12 +6,15 @@
 #include <bitset>
 #include <list>
 #include <queue>
-#include <unordered_map>
+// #include <unordered_map>
 #include <signal.h>
 #include <chrono>
 #include<pthread.h>
+#include "tbb/concurrent_unordered_map.h"
 using namespace std;
 using namespace std::chrono;
+using namespace oneapi::tbb;
+
 
 #define SA_THRD_NUM 3
 
@@ -430,7 +433,7 @@ class Map{
         char mapObj;
 
         queue<Pos> nextPosQueue;
-        unordered_map<poskey_t, bool> vstdPosTbl;
+        concurrent_unordered_map<poskey_t, bool> vstdPosTbl;
 
         Pos curPos{.row{state.row}, .col{state.col}};
         Pos nextPos;
@@ -694,7 +697,7 @@ class Map{
 
 
     template<class dictValue_t>
-    bool is_pos_visited(unordered_map<poskey_t, dictValue_t> *vstdPosTbl, Pos pos){
+    bool is_pos_visited(concurrent_unordered_map<poskey_t, dictValue_t> *vstdPosTbl, Pos pos){
         return !(vstdPosTbl->find(pos2key(pos)) == vstdPosTbl->end());
     }
 
@@ -703,7 +706,7 @@ class Map{
 
     template<class dictValue_t>
     bool add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
-                unordered_map<poskey_t, dictValue_t> *vstdPosTbl, queue<Pos> *nextPosQueue){
+                concurrent_unordered_map<poskey_t, dictValue_t> *vstdPosTbl, queue<Pos> *nextPosQueue){
   
         Pos nextPos;
         char mapObj;
@@ -891,7 +894,7 @@ class Map{
         char mapObj;
 
         queue<Pos> nextPosQueue;
-        unordered_map<poskey_t, bool> vstdPosTbl;
+        concurrent_unordered_map<poskey_t, bool> vstdPosTbl;
         
         Pos probe_pos, curPos = pos1;
         nextPosQueue.push(curPos);
@@ -972,7 +975,7 @@ class Map{
         render_boxPos(renderedMap, boxPos);
 
         queue<Pos> nextPosQueue;
-        unordered_map<poskey_t, poskey_t> vstdPosTbl;
+        concurrent_unordered_map<poskey_t, poskey_t> vstdPosTbl;
 
         Pos curPos = fromPos, nextPos;
         poskey_t curPosKey;
@@ -1367,8 +1370,8 @@ class Solver{
     }
     
 
-    bool is_state_visited(unordered_map<bitset<64>, Action> *vstdStTbl, 
-                    unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
+    bool is_state_visited(concurrent_unordered_map<bitset<64>, Action> *vstdStTbl, 
+                    concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
 
         if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){
             return false;
@@ -1401,8 +1404,8 @@ class Solver{
     }
 
 
-    void add_visited_state(unordered_map<bitset<64>, Action> *vstdStTbl, 
-                    unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
+    void add_visited_state(concurrent_unordered_map<bitset<64>, Action> *vstdStTbl, 
+                    concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
         
         bool is_in_vstdStTable;
 
@@ -1425,7 +1428,7 @@ class Solver{
     }
 
 
-    void insert_ActionNode(unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
+    void insert_ActionNode(concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
 
         ActionNode *cur = new ActionNode;
         cur->action = action;
@@ -1463,7 +1466,7 @@ class Solver{
 
     
 
-    bool is_in_vstdClidStTbl(unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, 
+    bool is_in_vstdClidStTbl(concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, 
                                                                             bitset<64> boxPos){
         pthread_mutex_lock(&mutex_vstdClidStTbl);
         bool ret = !(vstdClidStTbl->find(boxPos) == vstdClidStTbl->end());
@@ -1473,7 +1476,7 @@ class Solver{
     }
 
 
-    bool is_in_vstdStTbl(unordered_map<bitset<64>, Action> *vstdStTbl, bitset<64> boxPos){
+    bool is_in_vstdStTbl(concurrent_unordered_map<bitset<64>, Action> *vstdStTbl, bitset<64> boxPos){
         pthread_mutex_lock(&mutex_vstdStTbl);
         bool ret = !(vstdStTbl->find(boxPos) == vstdStTbl->end()); 
         pthread_mutex_unlock(&mutex_vstdStTbl);           
@@ -1682,8 +1685,8 @@ class Solver{
     char* stepsBuf;
     int stepsOfst;
 
-    unordered_map<bitset<64>, Action> vstdStTbl;
-    unordered_map<bitset<64>, ActionNode*> vstdClidStTbl;
+    concurrent_unordered_map<bitset<64>, Action> vstdStTbl;
+    concurrent_unordered_map<bitset<64>, ActionNode*> vstdClidStTbl;
     queue<State> nextStateQueue;
     
 
