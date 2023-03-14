@@ -82,7 +82,7 @@ typedef bitset<64> boxPos_t;
 struct State{
     bitset<64> boxPos;
     unsigned char row, col;
-    // bitset<64> reachablePos;
+    bitset<64> reachablePos;
 };
 
 enum Dir{
@@ -724,6 +724,52 @@ class Map{
         return renderedMap[rowBegins[pos.row] + pos.col];
     }
 
+
+    void find_reachable_pos(char* renderedMap, State* state){
+
+        // char* renderedMap = new char[fileLen];
+        // render_boxPos(renderedMap, state->boxPos);  
+        char mapObj;
+
+        queue<Pos> nextPosQueue;
+        unordered_map<poskey_t, bool> vstdPosTbl;
+        
+
+        Pos probe_pos, curPos;
+        curPos.row = state->row;
+        curPos.col = state->col;
+        
+        // safe_place_object(renderedMap, curPos, 'o');
+        nextPosQueue.push(curPos);
+        vstdPosTbl[pos2key(curPos)] = true;
+                        
+        while(!nextPosQueue.empty()){
+            curPos = nextPosQueue.front();
+            nextPosQueue.pop();
+
+            for(int dir=0; dir<=3; dir++){
+
+                move(curPos, dir, &probe_pos);
+                mapObj = get_map_object(renderedMap, probe_pos); 
+
+                if(mapObj == '.' || mapObj == ' ' || mapObj == '@'){
+
+                    if(!is_pos_visited<dictValue_t>(vstdPosTbl, probe_pos)){
+                        nextPosQueue->push(probe_pos);
+                        (*vstdPosTbl)[pos2key(probe_pos)] = true;
+
+                        if(mapObj != '@'){set_map_object(renderedMap, probe_pos, 'r');}
+                        else{set_map_object(renderedMap, probe_pos, 'R');}
+                    }
+                }
+            }
+        }
+
+        map2state(renderedMap, state);
+        
+    }
+
+
     void render_boxPos(char *renderedMap, bitset<64> boxPos){
 
         char ch;
@@ -784,7 +830,9 @@ class Map{
 
         // }
 
-        map2state(renderedMap, next_state);
+        // map2state(renderedMap, next_state);
+
+        find_reachable_pos(renderedMap, next_state);
 
 
     }
@@ -822,11 +870,13 @@ class Map{
     }
 
 
+
     void map2state(char* renderedMap, State* state){
         char ch;
 
         state->boxPos = 0b0;
-        int offset = 0;
+        state->reachablePos = 0b0;
+        int ofst_x, ofst_o = 0;
         int row = 0, col = 0;
 
         for(int i=0; i<fileLen-1;i++){
@@ -838,25 +888,75 @@ class Map{
             if(ch != '#'){ 
 
                 if(ch == ' ' || ch == '.'){
-                    offset++;
+                    ofst_x++;
+                    ofst_o++;
+                }   
+                else if(ch == 'R'){
+                    state->reachablePos.set(size_t(ofst_o++), true);
                 }
+                else if(ch == 'r'){
+                    ofst_x++;
+                    state->reachablePos.set(size_t(ofst_o++), true);
+                }                             
                 else if(ch == 'x' || ch == 'X'){
-                    state->boxPos.set(size_t(offset++), true);
+                    ofst_o++;
+                    state->boxPos.set(size_t(ofst_x++), true);
                 }
                 else if(ch == 'o' || ch == 'O'){
-                    offset++;
+                    ofst_x++;
+                    state->reachablePos.set(size_t(ofst_o++), true);
                     state->row = row;
                     state->col = col;
                 }
                 else if(ch == '!'){
+                    state->reachablePos.set(size_t(ofst_o++), true);
                     state->row = row;
                     state->col = col;                    
                 }
+
+
             }             
 
             col++;
         }      
     }
+    
+
+    // void map2state(char* renderedMap, State* state){
+    //     char ch;
+
+    //     state->boxPos = 0b0;
+    //     int offset = 0;
+    //     int row = 0, col = 0;
+
+    //     for(int i=0; i<fileLen-1;i++){
+            
+    //         ch = renderedMap[i]; 
+
+    //         if(ch == '\n'){ row++; col = 0; continue; }
+
+    //         if(ch != '#'){ 
+
+    //             if(ch == ' ' || ch == '.'){
+    //                 offset++;
+    //             }
+    //             else if(ch == 'x' || ch == 'X'){
+    //                 state->boxPos.set(size_t(offset++), true);
+    //             }
+    //             else if(ch == 'o' || ch == 'O'){
+    //                 offset++;
+    //                 state->row = row;
+    //                 state->col = col;
+    //             }
+    //             else if(ch == '!'){
+    //                 state->row = row;
+    //                 state->col = col;                    
+    //             }
+    //         }             
+
+    //         col++;
+    //     }      
+    // }
 
 
     bool is_reachable(State state, Pos pos1, Pos pos2){
@@ -1134,14 +1234,10 @@ class Solver{
 
     void join_thread()
     {
-        // for (int i = 0; i < nxStThrdNum; i++){
-        //     pthread_join(nxStThrds[i], NULL);
-        // }        
 
         for (int i = 0; i < saThrdNum; i++){
             pthread_join(saThrds[i], NULL);
         }  
-
  
     }
 
@@ -1182,29 +1278,17 @@ class Solver{
 
             has_new_nextState_data = false;
 
-            // pthread_mutex_lock(&mutex_nextStateQueue);
             if(!nextStateQueue.empty()){
-               
-                // state = nextStateQueue.front();
-                // nextStateQueue.pop();
-
                 if(!nextStateQueue.try_pop(state)){
                     fprintf(stderr, "\n[thrd_cons_nxStQueue()] pop failed.\n\n"); 
                 }
-
                 has_new_nextState_data = true;
-
-                // probe_get_nextStateQueue_max_size(nextStateQueue.size());
             }
-            // pthread_mutex_unlock(&mutex_nextStateQueue);
             
         
             if(has_new_nextState_data){
-
                 map->get_available_actions(state, &action_list);
-                
                 thrd_sa_distributer(state, &action_list);
-             
             }
         }
     }
@@ -1215,82 +1299,39 @@ class Solver{
     void thrd_sa_distributer(State state, list<Action>* action_list){
 
         int minLenThrdId, minLen, sa_list_size;
-        bool is_push_ok;
-        State nextSt;
         Action curAction;
         SA sa;
 
         list<SA> sa_list;
 
-       
         while(!action_list->empty()){
             curAction = action_list->front();
             action_list->pop_front();            
-            map->act(state, curAction, &nextSt); 
-
             sa.action = curAction;
-            sa.state = nextSt;
-
-            if(map->is_done(nextSt)){
-                doneState = nextSt;
-                doneAction = curAction;
-                done = true;
-
-                fprintf(stderr, "\ndone!\n\n"); 
-                map->print_state(doneState);   
-                return;      
-            } 
+            sa.state = state;
             sa_list.push_back(sa);
         }
 
-
-        // for(int i=0; i<saThrdNum; i++){pthread_mutex_lock(&mutex_sa_lists[i]);}
 
         while(!sa_list.empty()){
 
             sa = sa_list.front();
             sa_list.pop_front();
 
-            is_push_ok = false;
             minLenThrdId = 0;
             minLen = 10000;            
-            for(int i=0; i<saThrdNum; i++){
-
-                // if(_is_boxPos_in_list(nextSt.boxPos, sa_lists[i])){
-                //     sa_lists[i].push(sa);
-                //     is_push_ok = true;
-                //     break;
-                // }
-
+            for(int i=0; i < saThrdNum; i++){
                 sa_list_size = sa_lists[i].unsafe_size();
                 if(minLen > sa_list_size){
                     minLen = sa_list_size;
                     minLenThrdId = i;
                 }
             }
-
-            if(!is_push_ok){
-                sa_lists[minLenThrdId].push(sa);
-            }
-
+            sa_lists[minLenThrdId].push(sa);
         }
-
-        // for(int i=0; i<saThrdNum; i++){pthread_mutex_unlock(&mutex_sa_lists[i]);}
     }
 
 
-
-    bool _is_boxPos_in_list(boxPos_t boxPos, concurrent_queue<SA> sa_list){
-        SA probe_sa;
-        while(!sa_list.empty()){
-       
-            if(!sa_list.try_pop(probe_sa)){
-                fprintf(stderr, "\n[_is_boxPos_in_list()] pop failed.\n\n"); 
-            }
-            if(probe_sa.state.boxPos == boxPos) return true;
-        }
-        return false;
-    }
 
 
 
@@ -1300,112 +1341,112 @@ class Solver{
 
         bool has_new_sa_data;
         Action curAction;
-        State nextState;
+        State nextSt, curSt;
         SA sa;
 
-
         if(threadId == 0){
-            // pthread_mutex_lock(&mutex_nextStateQueue);
-            nextStateQueue.push(map->get_state());  
-            // pthread_mutex_unlock(&mutex_nextStateQueue);
-
             curAction.row = MAP_COORD_RSRV;
             curAction.col = MAP_COORD_RSRV;
-            add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
+            add_visited_state(&nextStateQueue, &vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
         }
-
-
 
 
         while(!done){ 
             
             has_new_sa_data = false;
-
             if(!sa_lists[threadId].empty()){
                 
-                if(!sa_lists[threadId].try_pop(sa)){
-                    fprintf(stderr, "\n[thrd_cons_sa_lists()] pop failed.\n\n"); 
-                }
+                if(!sa_lists[threadId].try_pop(sa)){fprintf(stderr, "\npop failed.\n\n");}
 
-                nextState = sa.state;
+                curSt = sa.state;
                 curAction = sa.action;
 
                 has_new_sa_data = true;
-                // thrd_cons_sa_lists_count[threadId]++;
             }
 
 
 
             if(has_new_sa_data){
+
+                map->act(curSt, curAction, &nextSt); 
+                // map->find_reachable_pos(&nextSt);
+
+
+                if(map->is_done(nextSt)){
+                    doneState = nextSt;
+                    doneAction = curAction;
+                    done = true;
+
+                    fprintf(stderr, "\ndone!\n\n"); 
+                    map->print_state(doneState);   
+                    return;      
+                } 
+
+                // add_visited_state(&nextStateQueue, &vstdStTbl, &vstdClidStTbl, nextSt, curAction);
+                // add_visited_state(&nextStateQueue, &vstdStTbl, nextSt, curAction);
+
+
+                if(!is_in_vstdStTbl(vstdStTbl, state2key(nextSt))){
+                    nextStateQueue->push(nextSt);
+                    (*vstdStTbl)[state2key(nextSt)] = action;
+                    return;
+                }
+
                 
-                if(!is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState)){ 
-
-                    add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction); 
-                    
-                    nextStateQueue.push(nextState);  
-                }  
             }
-
         }
     }
     
 
-    bool is_state_visited(concurrent_unordered_map<bitset<64>, Action> *vstdStTbl, 
-                    concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
-
-        if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){
-            return false;
-        }
-        Pos vstdPos;
-        Action preVstdAction = (*vstdStTbl)[state.boxPos];
-        
-
-        map->move_by_action(preVstdAction, &vstdPos);
-        Pos curPos{.row{state.row}, .col{state.col}};
-        if(map->is_reachable(state, curPos, vstdPos)){return true;}
-        
+    void add_visited_state(concurrent_queue<State>* nextStateQueue , 
+                concurrent_unordered_map<state_t, Action> *vstdStTbl, 
+                    State state, Action action){
 
 
-        if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){
-            return false;
-        }
-        ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
 
-
-        while(cur_ptr){
-            Action preVstdAction = cur_ptr->action;
-            map->move_by_action(preVstdAction, &vstdPos);
-            if(map->is_reachable(state, curPos, vstdPos)){return true;}
-            cur_ptr = cur_ptr->next;
-        }
-
-
-        return false;
-    }
-
-
-    void add_visited_state(concurrent_unordered_map<bitset<64>, Action> *vstdStTbl, 
-                    concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
-        
-        bool is_in_vstdStTable;
-
-        
-        is_in_vstdStTable = is_in_vstdStTbl(vstdStTbl, state.boxPos);
-        
-        if(!is_in_vstdStTable){ 
-            
-
-            // pthread_mutex_lock(&mutex_vstdStTbl);
-            probe_vstdCount++;
+        if(!is_in_vstdStTbl(vstdStTbl, state2key(state))){
+            nextStateQueue->push(state);
             (*vstdStTbl)[state.boxPos] = action;
-            // pthread_mutex_unlock(&mutex_vstdStTbl); 
+            return;
         }
-        else{
-            
-            insert_ActionNode(vstdClidStTbl, state, action);
-                       
-        }
+
+
+
+        // Pos vstdPos;
+        // Action preVstdAction = (*vstdStTbl)[state.boxPos];
+
+        // map->move_by_action(preVstdAction, &vstdPos);
+        // Pos curPos{.row{state.row}, .col{state.col}};
+        // if(map->is_reachable(state, curPos, vstdPos)){return;}
+        
+
+
+
+
+        // if(!is_in_vstdClidStTbl(vstdClidStTbl, state.boxPos)){
+        //     nextStateQueue->push(state);
+        //     insert_ActionNode(vstdClidStTbl, state, action);
+        //     return;
+        // }
+
+
+
+
+        // ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
+        // while(cur_ptr){
+        //     Action preVstdAction = cur_ptr->action;
+        //     map->move_by_action(preVstdAction, &vstdPos);
+        //     if(map->is_reachable(state, curPos, vstdPos)){return;}
+        //     cur_ptr = cur_ptr->next;
+        // }
+
+
+
+        // nextStateQueue->push(state);
+        // insert_ActionNode(vstdClidStTbl, state, action);
+        // return;
     }
+
 
 
     void insert_ActionNode(concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state, Action action){
@@ -1417,30 +1458,12 @@ class Solver{
             cur->next = NULL;
         }
         else{
-            // pthread_mutex_lock(&mutex_vstdClidStTbl);
             cur->next = (*vstdClidStTbl)[state.boxPos];
-            // pthread_mutex_unlock(&mutex_vstdClidStTbl); 
         }
-
-
-
-
-        // pthread_mutex_lock(&mutex_vstdClidStTbl);
 
         probe_vstdClidCount++;
         (*vstdClidStTbl)[state.boxPos] = cur;
 
-        // if(cur->next){
-        //     char* debugMap = new char[map->fileLen];
-        //     // fprintf(stderr, "\n[insert_ActionNode()] -----------------. \n\n");
-        //     map->render_boxPos(debugMap, state.boxPos);
-        //     print_action(action);
-        //     print_action(cur->next->action);
-
-        // }
-
-
-        // pthread_mutex_unlock(&mutex_vstdClidStTbl); 
     }
 
 
@@ -1448,18 +1471,14 @@ class Solver{
 
     bool is_in_vstdClidStTbl(concurrent_unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, 
                                                                             bitset<64> boxPos){
-        // pthread_mutex_lock(&mutex_vstdClidStTbl);
         bool ret = !(vstdClidStTbl->find(boxPos) == vstdClidStTbl->end());
-        // pthread_mutex_unlock(&mutex_vstdClidStTbl);      
         return ret;
 
     }
 
 
     bool is_in_vstdStTbl(concurrent_unordered_map<bitset<64>, Action> *vstdStTbl, bitset<64> boxPos){
-        // pthread_mutex_lock(&mutex_vstdStTbl);
         bool ret = !(vstdStTbl->find(boxPos) == vstdStTbl->end()); 
-        // pthread_mutex_unlock(&mutex_vstdStTbl);           
         return ret;
     }
 
