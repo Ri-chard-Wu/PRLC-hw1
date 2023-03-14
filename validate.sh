@@ -1,8 +1,8 @@
 cd ~/hw1
 # make clean
 # make 2>make-stderr.out
-
-g++ -std=c++17 -O3 -pthread -fopenmp ${1}.cc -o ${1}  2>make-stderr.out
+rm ${1}
+g++ -ltbb -std=c++17 -O3 -pthread -fopenmp ${1}.cc -o ${1}  2>make-stderr.out
 
 echo "==================================="
 echo "=           Validate all          ="
