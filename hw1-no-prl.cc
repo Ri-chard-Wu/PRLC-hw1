@@ -13,7 +13,8 @@ using namespace std;
 using namespace std::chrono;
 
 
-
+int n = 1000000;
+int dn = 400;
 
 #define MAP_COORD_MAX 254 // last value is reserved.
 #define MAP_COORD_RSRV 255
@@ -23,6 +24,11 @@ unsigned int probe_vstdCount;
 unsigned int probe_vstdClidCount;
 int probe_nextStateQueue_max_size;
 int probe__add_one_step__calling_count;
+unsigned int probe_vstdStTbl_count;
+unsigned int probe_is_reachable_vstdStTbl_count;
+unsigned int probe_vstdClidStTbl_count;
+unsigned int probe_is_reachable_vstdClidStTbl_count;
+
 
 void probe_get_nextStateQueue_max_size(int queueSize){
     if(queueSize > probe_nextStateQueue_max_size){
@@ -37,7 +43,11 @@ void probe_print_stat(){
     fprintf(stderr, "probe_vstdClidCount: %d\n", probe_vstdClidCount);
     fprintf(stderr, "probe_nextStateQueue_max_size: %d\n", probe_nextStateQueue_max_size);
     fprintf(stderr, "probe__add_one_step__calling_count: %d\n", probe__add_one_step__calling_count);
-    
+    fprintf(stderr, "probe_vstdStTbl_count: %d\n", probe_vstdStTbl_count);
+    fprintf(stderr, "probe_is_reachable_vstdStTbl_count: %d\n", probe_is_reachable_vstdStTbl_count);
+    fprintf(stderr, "probe_vstdClidStTbl_count: %d\n", probe_vstdClidStTbl_count);
+    fprintf(stderr, "probe_is_reachable_vstdClidStTbl_count: %d\n", probe_is_reachable_vstdClidStTbl_count);
+
     fprintf(stderr, "\n\n");
 }
 
@@ -60,6 +70,7 @@ typedef bitset<64> boxPos_t;
 struct State{
     bitset<64> boxPos;
     unsigned char row, col;
+    // bitset<64> reachablePos;
 };
 
 
@@ -168,9 +179,11 @@ class Map{
         pos.row = state.row;
         pos.col = state.col;
 
-        mapObj = get_map_object(renderedMap, pos);
-        if(mapObj == '.') set_map_object(renderedMap, pos, 'O');
-        else if(mapObj == ' ') set_map_object(renderedMap, pos, 'o');
+        safe_place_object(renderedMap, pos, 'o');
+
+        // mapObj = get_map_object(renderedMap, pos);
+        // if(mapObj == '.') set_map_object(renderedMap, pos, 'O');
+        // else if(mapObj == ' ') set_map_object(renderedMap, pos, 'o');
 
         for (int i=0; i<fileLen; i++){
             fprintf(stderr, "%c", renderedMap[i]);
@@ -313,11 +326,15 @@ class Map{
                 else if(ch == 'x' || ch == 'X'){
                     state.boxPos.set(size_t(offset++), true);
                 }
-                else if(ch == 'o' || ch == 'O' || ch == '!'){
+                else if(ch == 'o' || ch == 'O'){
                     state.boxPos.reset(size_t(offset++));
                     state.row = row;
                     state.col = col;
-                }                    
+                }
+                else if(ch == '!'){
+                    state.row = row;
+                    state.col = col;
+                }                
             }
 
             col++;
@@ -391,19 +408,18 @@ class Map{
 
     
 
-    void get_available_actions(State state, list<Action>* action_list){
+    void get_available_actions(State* state, list<Action>* action_list){
         // Do BFS to find what `action`'s are available given `state`.
 
         char* renderedMap = new char[fileLen];
-        render_boxPos(renderedMap, state.boxPos);
-
-        // fprintf(stderr, "\n[get_available_actions()] initial map to find available action:\n\n"); 
-        // print_state(state);
+        render_boxPos(renderedMap, state->boxPos);
+        
+        char mapObj;
 
         queue<Pos> nextPosQueue;
         unordered_map<poskey_t, bool> vstdPosTbl;
 
-        Pos curPos{.row{state.row}, .col{state.col}};
+        Pos curPos{.row{state->row}, .col{state->col}};
         Pos nextPos;
         Action action;
         nextPosQueue.push(curPos);
@@ -413,15 +429,22 @@ class Map{
             
             curPos = nextPosQueue.front();
             nextPosQueue.pop();
-            // vstdPosTbl[pos2key(curPos)] = true;
 
             add_local_action(renderedMap, curPos, action_list); // ok
-
-            // fprintf(stderr, "\n[get_available_actions()] print local action:\n\n"); 
-            // print_action_list(*action_list);
-
+       
             for(int dir=0; dir<=3; dir++){
                 add_unvisited_nextPos<bool>(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
+
+                // move(curPos, dir, &nextPos);
+                // mapObj = get_map_object(renderedMap, nextPos); 
+
+                // if(mapObj == '.' || mapObj == ' ' || mapObj == '@'){
+                //     if(!is_pos_visited<dictValue_t>(vstdPosTbl, nextPos)){
+                //         nextPosQueue->push(nextPos);
+                //         (*vstdPosTbl)[pos2key(nextPos)] = true;
+                //     }
+                // }
+
             }
         }
     }
@@ -455,13 +478,9 @@ class Map{
 
                     if(!is_dead_action(renderedMap, action)){
 
-                        // fprintf(stderr, "\n[add_local_action()] is not dead action.\n\n"); 
                         action_list->push_back(action);
-
                     }
-                    else{
-                        // fprintf(stderr, "\n[add_local_action()] is dead action. dir: %d\n\n", (int)dir); 
-                    }
+                               
                 }
             }
         }
@@ -588,17 +607,24 @@ class Map{
         // Fast path
         // - a box pushed into corner (2 '#' or 1 '#' + 1 'x') and is not on '.' 
 
-        int dir1, dir2;
+        int dir1, dir2, adjDir1, adjDir;
         Pos probe_pos, probe_pos1, probe_pos2;
         char mapObj, mapObj_adj1, mapObj_adj2, mapObj_x_pos;
         bool is_dead;
 
         mapObj_x_pos = get_map_object(renderedMap, x_pos);
 
-        for(int dir=((int)pushDir) - 1; dir <= ((int)pushDir) + 1; dir++){
 
-            dir1 = dir; 
-            dir2 = (dir1 + 1)%4;
+        for(int dir=((int)pushDir); dir <= ((int)pushDir) + 1; dir++){
+            dir1 = dir % 4; 
+            dir2 = (dir1 + 3)%4;  
+
+        // for(int dir=((int)pushDir) - 1; dir <= ((int)pushDir) + 1; dir++){
+            // if(dir<0)dir+=4;
+
+            // dir1 = dir%4; 
+            // dir2 = (dir1 + 1)%4;
+
 
             move(x_pos, (Dir)dir1, &probe_pos1);
             mapObj_adj1 = get_map_object(renderedMap, probe_pos1);
@@ -608,74 +634,42 @@ class Map{
 
 
             if(mapObj_adj1 == '#' && mapObj_adj2 == '#' && mapObj_x_pos != '.'){ 
-                // fprintf(stderr, "\n[is_dead_corner()] type 0\n\n");
                 return true;
             }
-            else if(mapObj_adj1 == '#' && mapObj_adj2 == 'x' ||
-                    mapObj_adj1 == '#' && mapObj_adj2 == 'X' && mapObj_x_pos == ' '){
+            else if((mapObj_adj1 == '#' && mapObj_adj2 == 'x') ||
+                    (mapObj_adj1 == '#' && mapObj_adj2 == 'X' && mapObj_x_pos == ' ')){
                 
-                is_dead = true;
+                
 
-                move(probe_pos2, (Dir)((dir2 + 1)%4), &probe_pos);
+                move(probe_pos2, (Dir)(dir1%4), &probe_pos);
                 mapObj = get_map_object(renderedMap, probe_pos);
-                is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+                if(mapObj != ' ' && mapObj != '.')return true;
 
-                move(probe_pos2, (Dir)((dir2 + 3)%4), &probe_pos);
-                mapObj = get_map_object(renderedMap, probe_pos);
-                is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
-
-                if(is_dead){
-                    // fprintf(stderr, "\n[is_dead_corner()] type 1\n\n");
-                    return true;
-                } 
 
             }                   
-            else if(mapObj_adj1 == 'x' && mapObj_adj2 == '#' ||
-                    mapObj_adj1 == 'X' && mapObj_adj2 == '#' && mapObj_x_pos == ' '){
-                
-                is_dead = true;
+            else if((mapObj_adj1 == 'x' && mapObj_adj2 == '#' )||
+                    (mapObj_adj1 == 'X' && mapObj_adj2 == '#' && mapObj_x_pos == ' ')){
 
-                move(probe_pos1, (Dir)((dir1 + 1)%4), &probe_pos);
+
+                move(probe_pos1, (Dir)(dir2%4), &probe_pos);
                 mapObj = get_map_object(renderedMap, probe_pos);
-                is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+                if(mapObj != ' ' && mapObj != '.')return true;
 
-                move(probe_pos1, (Dir)((dir1 + 3)%4), &probe_pos);
-                mapObj = get_map_object(renderedMap, probe_pos);
-                is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
+                // move(probe_pos1, (Dir)(dir2+2%4), &probe_pos);
+                // mapObj = get_map_object(renderedMap, probe_pos);
+                // if(mapObj != ' ' && mapObj != '.')return true;
 
-                if(is_dead){
-                    // fprintf(stderr, "\n[is_dead_corner()] type 2\n\n");
-                    return true;
-                } 
             }
             else if((mapObj_adj1 == 'x' && mapObj_adj2 == 'x') ||
                     (mapObj_adj1 == 'x' && mapObj_adj2 == 'X') ||
                     (mapObj_adj1 == 'X' && mapObj_adj2 == 'x') ||
                     (mapObj_adj1 == 'X' && mapObj_adj2 == 'X' && mapObj_x_pos == ' ')){
-                
-                is_dead = true;
 
-                move(probe_pos1, (Dir)((dir1 + 1)%4), &probe_pos);
+
+                move(probe_pos1, (Dir)(dir2%4), &probe_pos);
                 mapObj = get_map_object(renderedMap, probe_pos);
-                is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
-
-                move(probe_pos1, (Dir)((dir1 + 3)%4), &probe_pos);
-                mapObj = get_map_object(renderedMap, probe_pos);
-                is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
-                
-
-                move(probe_pos2, (Dir)((dir2 + 1)%4), &probe_pos);
-                mapObj = get_map_object(renderedMap, probe_pos);
-                is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
-
-                move(probe_pos2, (Dir)((dir2 + 3)%4), &probe_pos);
-                mapObj = get_map_object(renderedMap, probe_pos);
-                is_dead = is_dead && (mapObj != ' ' && mapObj != '.');
-
-                if(is_dead){
-                    // fprintf(stderr, "\n[is_dead_corner()] type 3\n\n");
-                    return true;
-                }                     
+                if(mapObj != ' ' && mapObj != '.')return true;
+                  
             }              
         }     
 
@@ -683,79 +677,6 @@ class Map{
 
     }
     
-
-    bool is_pushPos_unreachable(Pos o_pos, Pos x_pos){
-        // Slow path
-        // 1. find all available action on a box
-        // 2. get pos needed to do the action
-        // 3. use BFS on `map` to see whether those pos's are reachable.
-        // 4. if all of pos are unreachable and 'x' is not on '.', return true.
-
-        char* onexMap = new char[fileLen];
-        reset_renderedMap(onexMap);
-        safe_place_object(onexMap, x_pos, 'x');
-        char mapObj;
-
-        fprintf(stderr, "\n[is_pushPos_unreachable()] safe_place x on onexMap, print_map:\n\n");
-        print_map(onexMap);
-
-
-
-
-        fprintf(stderr, "\n[is_pushPos_unreachable()] print debug map:\n\n");
-        char* debugMap = new char[fileLen];
-        reset_renderedMap(debugMap);
-        // copy_map(rawMap, debugMap);
-        safe_place_object(debugMap, o_pos, 'o');
-        safe_place_object(debugMap, x_pos, 'x');
-        print_map(debugMap);
-
-        
-
-
-
-        queue<Pos> nextPosQueue;
-        queue<Pos> pushPosQueue;
-        unordered_map<poskey_t, bool> vstdPosTbl;
-        
-        Pos pushPos, probe_pos, curPos = o_pos;
-        nextPosQueue.push(curPos);
-                        
-        // find push positions (4 at most).
-        for(int dir=0; dir<=3; dir++){
-            move(x_pos, (Dir)dir, &probe_pos);
-            mapObj = get_map_object(onexMap, probe_pos);
-            if(mapObj == ' ' || mapObj == '.') {
-                fprintf(stderr, "\n[is_pushPos_unreachable()] action found, dir: %d\n", dir);
-                pushPosQueue.push(probe_pos);
-            }    
-        }
-
-        // BFS on onexMap starting from o_pos.
-        while(!nextPosQueue.empty()){
-            curPos = nextPosQueue.front();
-            nextPosQueue.pop();
-            vstdPosTbl[pos2key(curPos)] = true;
-
-            for(int dir=0; dir<=3; dir++){
-                add_unvisited_nextPos<bool>(onexMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
-            }
-        }
-        
-
-        // check whether all push positions cannot be found in vstdPosTbl.
-        bool is_all_unreachable = true;
-        while(!pushPosQueue.empty()){
-            pushPos = pushPosQueue.front();
-            pushPosQueue.pop();
-
-            is_all_unreachable = is_all_unreachable && !is_pos_visited(&vstdPosTbl, pushPos);
-            if(!is_all_unreachable) break;
-        }
-
-        return is_all_unreachable;            
-    }
-
 
 
 
@@ -770,36 +691,25 @@ class Map{
     template<class dictValue_t>
     bool add_unvisited_nextPos(char *renderedMap, Pos curPos, Dir dir, 
                 unordered_map<poskey_t, dictValue_t> *vstdPosTbl, queue<Pos> *nextPosQueue){
-        // check whether the position in `dir` is empty space (' ' or '.').
-            // If so and if not already explored, add to 'nextPosQueue'.
-
-        // fprintf(stderr, "\n[add_unvisited_nextPos()] dir: %d\n", (int)dir); 
-
+  
         Pos nextPos;
         char mapObj;
 
         move(curPos, dir, &nextPos);
         mapObj = get_map_object(renderedMap, nextPos); 
-        
-        // fprintf(stderr, "[add_unvisited_nextPos()] mapObj: %c\n", mapObj);
 
         if(mapObj == '.' || mapObj == ' ' || mapObj == '@'){
             if(!is_pos_visited<dictValue_t>(vstdPosTbl, nextPos)){
-                
-                // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) not visited.\n", nextPos.row, nextPos.col);
-
+        
                 nextPosQueue->push(nextPos);
                 (*vstdPosTbl)[pos2key(nextPos)] = true;
                 return true;
             }else{
-                // fprintf(stderr, "[add_unvisited_nextPos()] pos (%d, %d) already visited.\n", nextPos.row, nextPos.col);
                 return false;                    
             }
         }
 
         return false;
-
-        // fprintf(stderr, "\n\n");
     }
 
 
@@ -858,16 +768,13 @@ class Map{
         char* renderedMap = new char[fileLen];
         render_boxPos(renderedMap, cur_state.boxPos);  
 
-        // fprintf(stderr, "\n[act()]: before action\n\n");
-        // print_map(renderedMap);
-        // print_state(cur_state);
 
         char mapObj;
         Pos o_pos, x_pos;
         
         o_pos.row = action.row;
         o_pos.col = action.col;
-        move(o_pos, action.dir, &x_pos);
+        move(o_pos, action.dir, &x_pos); // x_pos: current position of 'x'
 
         // replace 'x' in old position by 'o'.
         mapObj = get_map_object(renderedMap, x_pos); 
@@ -882,14 +789,14 @@ class Map{
         else if(mapObj == '.') set_map_object(renderedMap, x_pos, 'X');
         else {fprintf(stderr, "[act()] `x` new position not a space. \n"); exit(-1);}
 
-        // fprintf(stderr, "\n[act()]: after action\n\n");
-        // print_map(renderedMap);
-            
+        // if(probe_vstdCount > 0){
+        //     fprintf(stderr, "[act()] after set map. \n");
+        //     print_map(renderedMap);
+
+        // }
 
         map2state(renderedMap, next_state);
 
-        // fprintf(stderr, "\n[act()]: after action\n\n");
-        // print_state(*next_state);
 
     }
 
@@ -947,11 +854,15 @@ class Map{
                 else if(ch == 'x' || ch == 'X'){
                     state->boxPos.set(size_t(offset++), true);
                 }
-                else if(ch == 'o' || ch == 'O' || '!'){
+                else if(ch == 'o' || ch == 'O'){
                     offset++;
                     state->row = row;
                     state->col = col;
-                }       
+                }
+                else if(ch == '!'){
+                    state->row = row;
+                    state->col = col;                    
+                }
             }             
 
             col++;
@@ -981,50 +892,13 @@ class Map{
             for(int dir=0; dir<=3; dir++){
                 add_unvisited_nextPos<bool>(renderedMap, curPos, (Dir)dir, &vstdPosTbl, &nextPosQueue);
             }
+
+
+            if(is_pos_visited<bool>(&vstdPosTbl, pos2)){return true;}
         }
 
-        if(is_pos_visited<bool>(&vstdPosTbl, pos2)){
+        return false;
 
-            // if((pos1.row != pos2.row) && (pos1.col != pos2.col)){
-            //     State tmpSt;
-            //     tmpSt.boxPos = state.boxPos;
-
-            //     fprintf(stderr, "\n[is_reachable()] is visited. print pos1 state:\n\n");
-            //     tmpSt.row = pos1.row;
-            //     tmpSt.col = pos1.col;
-            //     print_state(tmpSt);
-
-
-            //     fprintf(stderr, "\n[is_reachable()] is visited. print pos2 state:\n\n");
-            //     tmpSt.row = pos2.row;
-            //     tmpSt.col = pos2.col;
-            //     print_state(tmpSt);                    
-            // }
-
-
-            
-            return true;
-        }
-        else{
-            
-            // if((pos1.row != pos2.row) && (pos1.col != pos2.col)){
-            //     State tmpSt;
-            //     tmpSt.boxPos = state.boxPos;
-
-            //     fprintf(stderr, "\n[is_reachable()] not visited. print pos1 state:\n\n");
-            //     tmpSt.row = pos1.row;
-            //     tmpSt.col = pos1.col;
-            //     print_state(tmpSt);
-
-
-            //     fprintf(stderr, "\n[is_reachable()] not visited. print pos2 state:\n\n");
-            //     tmpSt.row = pos2.row;
-            //     tmpSt.col = pos2.col;
-            //     print_state(tmpSt);             
-            // }
-
-            return false;
-        }
     }
 
 
@@ -1232,33 +1106,31 @@ class Solver{
         list<Action> action_list;
         nextStateQueue.push(map->get_state());
 
-
         curAction.row = MAP_COORD_RSRV;
         curAction.col = MAP_COORD_RSRV;
         add_visited_state(&vstdStTbl, &vstdClidStTbl, map->get_state(), curAction);
+
 
         while (!nextStateQueue.empty()) {
             probe_vstdCount++;
             probe_get_nextStateQueue_max_size(nextStateQueue.size());
 
+
             state = nextStateQueue.front();
             nextStateQueue.pop();
 
+            map->get_available_actions(&state, &action_list); 
 
 
-            auto start = high_resolution_clock::now();
+            if(probe_vstdCount > n){
+                fprintf(stderr, "\n[explore()]: ---------------------\n\n"); 
+                map->print_state(state);
+                print_action_list(action_list);
+            }
 
-            map->get_available_actions(state, &action_list); 
-
-            auto stop = high_resolution_clock::now();
-            auto duration = duration_cast<microseconds>(stop - start);
-            // fprintf(stderr, "get_available_actions(): %d us\n", duration.count());
-
-
-
-            // fprintf(stderr, "\n[explore()]: print_action_list:\n\n"); 
-            // print_action_list(action_list);
-
+            if(probe_vstdCount > n + dn){
+                exit(1);
+            }
 
 
             while(!action_list.empty()){
@@ -1266,18 +1138,7 @@ class Solver{
                 curAction = action_list.front();
                 action_list.pop_front();
 
-
-
-                start = high_resolution_clock::now();
-
                 map->act(state, curAction, &nextState); 
-
-                stop = high_resolution_clock::now();
-                duration = duration_cast<microseconds>(stop - start);
-                // fprintf(stderr, "   act(): %d us\n", duration.count());
-                
-                
-                
                 
                 if(map->is_done(nextState)){
                     *doneState = nextState;
@@ -1287,28 +1148,9 @@ class Solver{
                     return true;
                 } 
 
-
-                start = high_resolution_clock::now();
-
                 isStVstd = is_state_visited(&vstdStTbl, &vstdClidStTbl, nextState);
-
-                stop = high_resolution_clock::now();
-                duration = duration_cast<microseconds>(stop - start);
-                // fprintf(stderr, "   is_state_visited(): %d us\n", duration.count());
-                                
-
                 if(!isStVstd){ 
-
-                    start = high_resolution_clock::now();
-
                     add_visited_state(&vstdStTbl, &vstdClidStTbl, nextState, curAction);  
-
-                    stop = high_resolution_clock::now();
-                    duration = duration_cast<microseconds>(stop - start);
-                    // fprintf(stderr, "       add_visited_state(): %d us\n", duration.count());
-                            
-                            
-                      
                     nextStateQueue.push(nextState);
                 }    
             }
@@ -1364,11 +1206,13 @@ class Solver{
                     unordered_map<bitset<64>, ActionNode*> *vstdClidStTbl, State state){
 
 
+        probe_vstdStTbl_count++;
 
         // key not found -> haven't been visited.
         if(!is_in_vstdStTbl(vstdStTbl, state.boxPos)){return false;}
 
 
+        // probe_is_reachable_vstdStTbl_count++;
 
 
         Pos vstdPos;
@@ -1378,12 +1222,13 @@ class Solver{
 
         // Have same box positions, and mutually 
             // reachable player positions *with the head* -> deemed visited.
-        if(map->is_reachable(state, curPos, vstdPos)){return true;}
-        
+        if(map->is_reachable(state, curPos, vstdPos)){
+            probe_is_reachable_vstdStTbl_count++;
+            return true;
+        }
 
 
-
-
+        // probe_vstdClidStTbl_count++;
 
 
         // key not found -> haven't been visited.
@@ -1393,9 +1238,13 @@ class Solver{
 
 
 
+
   
         ActionNode *cur_ptr = (*vstdClidStTbl)[state.boxPos];
         while(cur_ptr){
+
+            // probe_is_reachable_vstdClidStTbl_count++;
+
             Action preVstdAction = cur_ptr->action;
             map->move_by_action(preVstdAction, &vstdPos);
 
@@ -1642,6 +1491,10 @@ int main(int argc, char** argv) {
     probe_vstdClidCount = 0;
     probe_nextStateQueue_max_size = 0;
     probe__add_one_step__calling_count = 0;
+    probe_vstdStTbl_count = 0;
+    probe_is_reachable_vstdStTbl_count = 0;
+    probe_vstdClidStTbl_count = 0;
+    probe_is_reachable_vstdClidStTbl_count = 0;
 
     Solver solver(argv[1]);
     

@@ -10,7 +10,7 @@ echo "==================================="
 echo "=             Run hw1             ="
 echo "==================================="
 
-srun -n 1 -c 5 ./${2} ./samples/${1}.txt 2> run-stderr.out 1> answer.txt
+srun -n 1 -c 6 ./${2} ./samples/${1}.txt 2> run-stderr.out 1> answer.txt
 
 
 echo "==================================="

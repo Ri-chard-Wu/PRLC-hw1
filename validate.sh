@@ -10,16 +10,16 @@ echo "==================================="
 
 echo "" 1> run-stderr.out
 
-for i in {1..4} {7..9}
+for i in {1..9}
 do
-  srun -n 1 -c 1 ./${1} ./samples/0${i}.txt 2>> run-stderr.out 1> answer.txt
+  srun -n 1 -c 6 ./${1} ./samples/0${i}.txt 2>> run-stderr.out 1> answer.txt
   echo -n "0"${i}".txt: "
   ./validate.py ./samples/0${i}.txt answer.txt 2>> run-stderr.out 
 done
 
-for i in {10..19}
+for i in {10..21}
 do
-  srun -n 1 -c 1 ./${1} ./samples/${i}.txt 2>> run-stderr.out 1> answer.txt
+  srun -n 1 -c 6 ./${1} ./samples/${i}.txt 2>> run-stderr.out 1> answer.txt
   echo -n ${i}".txt: "
   ./validate.py ./samples/${i}.txt answer.txt 2>> run-stderr.out
 done
