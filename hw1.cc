@@ -811,7 +811,11 @@ class Map{
         // render_reachablePos(debugMap, state->reachablePos);
         // print_map(debugMap);
 
-        // exit(1);
+        // // exit(1);
+        // static int count = 0;
+        // if(count++ > 50){
+        //     exit(1);
+        // }
         
     }
 
@@ -1084,7 +1088,10 @@ class Map{
         safe_place_object(renderedMap, xprevPos, 'x');
         safe_place_object(renderedMap, oprevPos, 'o');
 
-        map2state(renderedMap, rvrsState);
+
+        // map2state(renderedMap, rvrsState);
+
+        find_reachable_pos(renderedMap, oprevPos, rvrsState);
 
 
 
@@ -1109,6 +1116,10 @@ class Map{
 
 
     bool get_steps(boxPos_t boxPos, Pos fromPos, Pos toPos, list<Dir>* steps){
+        
+        // fprintf(stderr, "\n[get_steps()] fromPos, toPos:\n");
+        // print_pos(fromPos);
+        // print_pos(toPos);
 
 
         char* renderedMap = new char[fileLen];
@@ -1163,12 +1174,17 @@ class Map{
                 curPosKey = prevPoskey;
                 prevPoskey = vstdPosTbl[curPosKey];
             }
+
+            // fprintf(stderr, "\n[get_steps()] steps.size(): %d\n", steps->size());
+            // exit(1);
             
             return true;
         }
         else{
             return false;
         }
+
+
     }
 
 
@@ -1394,8 +1410,20 @@ class Solver{
         if(threadId == 0){
             curAction.row = MAP_COORD_RSRV;
             curAction.col = MAP_COORD_RSRV;
-            nextStateQueue.push(map->get_state());
-            vstdStTbl[state2key(map->get_state())] = curAction;            
+            
+            State initSt = map->get_state();
+            Pos o_pos;
+            o_pos.row = initSt.row;
+            o_pos.col = initSt.col;
+
+            char* renderedMap = new char[map->fileLen];
+            map->render_boxPos(renderedMap, initSt.boxPos);
+            map->safe_place_object(renderedMap, o_pos, 'o');
+            map->find_reachable_pos(renderedMap, o_pos, &initSt);
+
+            nextStateQueue.push(initSt);
+
+            vstdStTbl[state2key(initSt)] = curAction;            
         }
 
 
@@ -1411,27 +1439,42 @@ class Solver{
 
                 has_new_sa_data = true;
             }
+            
 
 
             if(has_new_sa_data){
 
+  
+
                 map->act(curSt, curAction, &nextSt); 
+
+ 
             
                 if(map->is_done(nextSt)){
+
+                   
+
                     doneState = nextSt;
                     doneAction = curAction;
                     done = true;
 
-                    fprintf(stderr, "\ndone!\n\n"); 
+                    if(threadId == 0)fprintf(stderr, "\ndone!\n\n"); 
                     map->print_state(doneState);   
                     return;      
                 } 
 
+                
+
                 if(!is_in_vstdStTbl(&vstdStTbl, state2key(nextSt))){
+                    
+           
+
                     nextStateQueue.push(nextSt);
                     vstdStTbl[state2key(nextSt)] = curAction;
-                    return;
+                    
                 }
+
+    
 
             }
         }
@@ -1500,10 +1543,29 @@ class Solver{
         curState = doneState;
         curAction = doneAction;
         add_one_step(curAction.dir, true);
+
+
         generate_rvrsState(curState, curAction, &rvrsState); // get prev boxPos and player pos.
+
+        fprintf(stderr, "\n[recover_steps()] debug:\n\n");
+        map->print_state(curState);
+        map->print_state(rvrsState);
+
+        // char* debugMap = new char[map->fileLen];
+        // map->render_reachablePos(debugMap, rvrsState.reachablePos);
+        // map->print_map(debugMap);
+        // exit(1);
+
         retCode = find_vstd_prevStateAction(rvrsState, &prevState, &prevAction);
+        
+        // fprintf(stderr, "\n[recover_steps()] retCode: %d\n\n", retCode);
 
         while(retCode == 0){ // 0 -> both `prevState` and `prevAction found.
+            
+
+            // fprintf(stderr, "\n[recover_steps()] debug:\n\n");
+            // map->print_state(curState);
+            // map->print_state(rvrsState);
             
             add_intermediate_steps(prevState, rvrsState);
 
@@ -1512,7 +1574,12 @@ class Solver{
             add_one_step(curAction.dir, true);
             generate_rvrsState(curState, curAction, &rvrsState); // get prev boxPos and player pos.
             retCode = find_vstd_prevStateAction(rvrsState, &prevState, &prevAction);
+            // fprintf(stderr, "\n[recover_steps()] retCode: %d\n\n", retCode);
         }
+
+        // fprintf(stderr, "\n[recover_steps()] debug:\n\n");
+        // map->print_state(curState);
+        // map->print_state(rvrsState);
 
         if(retCode == 2){ // 2 -> only `prevState`, which is true for initial state
             add_intermediate_steps(prevState, rvrsState);
@@ -1524,6 +1591,32 @@ class Solver{
         
 
     }
+
+
+    void test_get_steps(boxPos_t boxPos, Pos fromPos, Pos toPos, list<Dir> steps){
+
+        fprintf(stderr, "\n[test_get_steps()]: print map & steps: \n\n");
+        char* debugMap = new char[map->fileLen];
+        map->render_boxPos(debugMap, boxPos); 
+
+        if(!((fromPos.row == toPos.row)&&(fromPos.col == toPos.col))){
+
+            map->safe_place_object(debugMap, fromPos, 'o');
+            map->safe_place_object(debugMap, toPos, 'o');
+            map->print_map(debugMap);
+
+        }
+
+        fprintf(stderr, "\n");
+
+        while (!steps.empty()){
+            fprintf(stderr, "%d ", (int)steps.front());
+            steps.pop_front();
+        }
+
+        fprintf(stderr, "\n\n");
+    }
+
 
 
     void add_intermediate_steps(State prevState, State rvrsState){
@@ -1538,6 +1631,7 @@ class Solver{
         list<Dir> steps;
 
         map->get_steps(prevState.boxPos, fromPos, toPos, &steps);
+        
         // test_get_steps(prevState.boxPos, fromPos, toPos, steps);
 
         while (!steps.empty()){
@@ -1561,7 +1655,10 @@ class Solver{
 
 
         // - Not in vstdStTbl.
-        if(!is_in_vstdStTbl(&vstdStTbl, state2key(rvrsState))){return 1;}
+        if(!is_in_vstdStTbl(&vstdStTbl, state2key(rvrsState)))
+        {
+            return 1;
+        }
 
 
         // - In vstdStTbl.
